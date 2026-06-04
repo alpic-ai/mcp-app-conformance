@@ -1,0 +1,42 @@
+{
+  "name": "mcp-apps-conformance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WPT-style conformance & interop test platform for the MCP Apps spec (SEP-1865). A reference test MCP server ships ui:// test pages that run inside any host and report PASS/FAIL.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build:view && npm run build:server",
+    "build:view": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "serve": "tsx server/main.ts",
+    "serve:stdio": "tsx server/main.ts --stdio",
+    "dev": "concurrently -n view,server -c blue,green \"vite build --watch\" \"tsx watch server/main.ts\"",
+    "start": "node dist/server/main.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.19",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^10.0.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}
