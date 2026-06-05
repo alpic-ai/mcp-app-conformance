@@ -122,7 +122,7 @@ test server (this repo)  ──URL──►  HOST under test (Alpic playground, 
         ▼  results/history.jsonl  →  GET /results  →  dashboard grid (host-by-host)
 ```
 
-- `server/` — reference MCP server (Streamable HTTP `/mcp`, Node-only, deploys on Alpic `node22/24`)
+- `server/` — reference MCP server (Streamable HTTP `/mcp`, Node-only`)
 - `view/` — the runner View + `testharness.ts` (the `mcp_test()` harness) + `tests.ts` (the catalogue)
 - `dashboard/` — static host-by-host conformance grid, served at `/`
 
