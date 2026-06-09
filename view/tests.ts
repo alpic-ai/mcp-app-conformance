@@ -319,3 +319,44 @@ mcp_test(
       "Reads the applied CSP via a <meta> tag or the securitypolicyviolation event's originalPolicy. ⚠️ if the host delivers CSP only by HTTP header and no violation fires (or originalPolicy is redacted), it can't be read.",
   },
 );
+
+// ── dimensions ───────────────────────────────────────────────────────────────
+// In flexible mode the host MUST resize the iframe when the view reports a new
+// size. The view can't read its outer iframe, but the host's resize changes the
+// view's own window.innerHeight (and fires a resize event). We grow the content
+// (autoResize reports it) and watch our viewport grow.
+mcp_test(
+  "dimensions/listen-size-changed",
+  "host resizes the iframe on size-changed (flexible mode)",
+  async (t: TestContext) => {
+    const dims = t.app.getHostContext()?.containerDimensions as { height?: number } | undefined;
+    if (dims && typeof dims.height === "number") {
+      t.info(`host pins a fixed height (${dims.height}px) — flexible-mode resize not applicable`);
+      return;
+    }
+    const before = window.innerHeight;
+    const spacer = document.createElement("div");
+    spacer.style.height = "320px";
+    spacer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(spacer);
+    t.addCleanup(() => spacer.remove());
+    // Wait for autoResize → host resize → our viewport to grow.
+    await new Promise<void>((resolve) => {
+      const finish = () => { window.removeEventListener("resize", onResize); clearTimeout(timer); resolve(); };
+      const onResize = () => { if (window.innerHeight > before) finish(); };
+      const timer = setTimeout(finish, 2500);
+      window.addEventListener("resize", onResize);
+    });
+    t.assert(
+      window.innerHeight > before,
+      `host must grow the iframe when the view reports a larger size (was ${before}px, now ${window.innerHeight}px)`,
+    );
+  },
+  {
+    clause: "MUST",
+    vantage: "in-view",
+    timeoutMs: 5000,
+    caveat:
+      "Flexible mode only (reports INFO if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
+  },
+);

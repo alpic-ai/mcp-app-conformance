@@ -15,7 +15,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 - **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify: change the theme, cancel a tool, close the view, read the conversation, observe a prompt.
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **16 of 45 host requirements implemented** (all `in-view`, no `manual`). The `⬜`
+> **17 of 45 host requirements implemented** (all `in-view`, no `manual`). The `⬜`
 > rows have reserved IDs; tests fill in against this same catalogue. The `host`
 > and `· manual` rows await a later host-inspection / human-driven harness (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
@@ -81,7 +81,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
-| `dimensions/listen-size-changed` | In flexible mode, host listens for `ui/notifications/size-changed` and updates the iframe. ⚠️ can't read the outer iframe size; infer via hostContext echo | MUST | in-view | ⬜ |
+| `dimensions/listen-size-changed` | In flexible mode, host resizes the iframe on `ui/notifications/size-changed`. Observed by growing the content and watching the view's own `window.innerHeight` grow. ⚠️ flexible mode only (INFO if the host pins a fixed height); relies on autoResize; host may clamp to maxHeight | MUST | in-view | ✅ |
 
 ## `display/` — display modes  ·  §Display Modes
 

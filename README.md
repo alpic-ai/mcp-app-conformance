@@ -15,7 +15,7 @@ Connect this MCP server to the host you want to test, then prompt the host to ru
 
 The host renders the runner; click **Run conformance tests** to see results. Full walkthrough → **[How to run against your host](docs/how-to/run-against-your-host.md)**.
 
-**Status:** 16 of 45 host requirements implemented (all `in-view`).
+**Status:** 17 of 45 host requirements implemented (all `in-view`).
 
 ## Documentation
 
