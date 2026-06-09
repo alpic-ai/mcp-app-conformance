@@ -41,22 +41,30 @@ test, which is why test IDs carry no actor prefix — they're named by spec
 ## The vantage model
 
 Not every requirement can be observed from the same place. Each test is tagged
-with a **vantage**:
+with one of three **vantages** — *where* it's observed:
 
-- **`in-view`** — measurable from inside the iframe (this runner). All 12
-  implemented tests are here.
+- **`in-view`** — measurable from inside the iframe (this runner). Every
+  implemented test so far is here.
+- **`host`** — only by inspecting the host's own surface from *outside* the view:
+  its rendered DOM (does the iframe carry the `sandbox` attribute?), the
+  host↔sandbox channel (`ui/notifications/sandbox-*` messages, which the view
+  never receives), or the conversation/model (is an app-only tool hidden from the
+  agent's tool list?). The view *is* the content, so it can't see any of this
+  about its cross-origin container.
 - **`server`** — only the test server sees it (e.g. that the host performed
   `resources/read`).
-- **`agent`** — needs the model's view or a multi-turn conversation (e.g. that an
-  app-only tool is hidden from the agent's tool list).
-- **`transport`** — sandbox-internal protocol, not forwarded to the view.
-- **`manual`** — a host-internal decision or UX side effect that isn't
-  auto-measurable (e.g. logging CSP config, warning the user).
 
-The vantage isn't bureaucracy — it's the honest boundary of what an in-iframe
-runner can prove. The [catalogue](../reference/catalogue.md) shows the vantage for
-every requirement; the many non-`in-view` rows are what motivates the future work
-below.
+…plus an orthogonal **`· manual`** flag for requirements that need a **human
+action** to trigger or verify — change the theme, cancel a tool, close the view,
+read the conversation, observe a consent prompt. A test can be `in-view · manual`
+(the notification arrives in the iframe, but a person must trigger it — e.g.
+`context/context-changed`: the view captures `onhostcontextchanged`, but someone
+has to toggle the theme) or `host · manual`.
+
+The vantage isn't bureaucracy — it's the honest boundary of what an automated,
+in-iframe runner can prove. The [catalogue](../reference/catalogue.md) shows the
+vantage (and `· manual`) for every requirement; the non-`in-view` and `· manual`
+rows are what motivate the future work below.
 
 ## How far to trust a result
 
@@ -100,9 +108,11 @@ later:
 - **Server-side judging** — having the view emit *raw observations* and the server
   apply the assertions, so verdicts are deterministic, auditable, and not editable
   by the host on the way back.
-- **An agent-driven harness** — to reach the `agent`-vantage requirements
-  (tool-list visibility, multi-turn model context, streaming tool input) that an
-  in-iframe runner cannot see.
+- **A host-inspection / human-driven harness** — to reach the `host` and
+  `· manual` requirements: inspecting the host's DOM (is the iframe sandboxed?),
+  the host↔sandbox channel, and the conversation/model (tool-list visibility,
+  multi-turn model context), plus the human-triggered cases (theme change, tool
+  cancel, teardown).
 
 See the [catalogue](../reference/catalogue.md) for the full requirement list and
 which vantage each one needs.

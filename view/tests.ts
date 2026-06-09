@@ -298,3 +298,24 @@ mcp_test(
     caveat: `Backed by csp-allow-declared as the positive control: the declared origin works, so blocking this one is genuinely the CSP, not a blanket fetch failure.`,
   },
 );
+
+// security — the host MUST build the CSP from the declared domains. Reads the
+// actual applied policy (not just behaviour) via meta tag / securitypolicyviolation.
+mcp_test(
+  "security/csp-construct-from-domains",
+  "host constructs the CSP from the declared domains",
+  async (t: TestContext) => {
+    const csp = await t.readAppliedCsp();
+    t.assert(csp !== null, "could not read the applied CSP (no <meta> tag and no securitypolicyviolation fired)");
+    t.assert(
+      /connect-src[^;]*modelcontextprotocol\.io/i.test(csp!),
+      `the constructed CSP's connect-src must include the declared domain; got: ${csp}`,
+    );
+  },
+  {
+    clause: "MUST",
+    vantage: "in-view",
+    caveat:
+      "Reads the applied CSP via a <meta> tag or the securitypolicyviolation event's originalPolicy. ⚠️ if the host delivers CSP only by HTTP header and no violation fires (or originalPolicy is redacted), it can't be read.",
+  },
+);

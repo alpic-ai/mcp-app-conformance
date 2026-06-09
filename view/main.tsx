@@ -20,7 +20,7 @@ import {
 import "./tests";
 import "./style.css";
 
-type Row = Pick<SubtestResult, "id" | "name" | "status" | "clause" | "vantage" | "caveat" | "message">;
+type Row = Pick<SubtestResult, "id" | "name" | "status" | "clause" | "vantage" | "manual" | "caveat" | "message">;
 
 const INITIAL_ROWS: Row[] = getRegistry().map((d) => ({
   id: d.id,
@@ -28,6 +28,7 @@ const INITIAL_ROWS: Row[] = getRegistry().map((d) => ({
   status: "NOTRUN",
   clause: d.clause,
   vantage: d.vantage,
+  manual: d.manual,
   caveat: d.caveat,
 }));
 
@@ -103,6 +104,7 @@ function ConformanceRunner() {
               <td className="mono">
                 {r.clause}
                 {r.vantage && <span className="vantage">{r.vantage}</span>}
+                {r.manual && <span className="vantage">manual</span>}
               </td>
               <td><span className={statusClass(r.status)}>{r.status}</span></td>
             </tr>

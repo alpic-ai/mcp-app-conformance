@@ -18,14 +18,17 @@ export type Clause = "MUST" | "MUST NOT" | "SHOULD" | "SHOULD NOT" | "MAY" | "RE
 /** "core" = spec-mandated; "host-specific" = shim/extension behaviour not scored against strict hosts. */
 export type Tag = "core" | "host-specific";
 /**
- * Where the requirement can actually be observed:
- * - "in-view"   — measurable from inside the iframe (this harness)
- * - "server"    — only the test server sees it (proxied call, resources/read)
- * - "agent"     — needs the model's view / a multi-turn conversation
- * - "transport" — sandbox-internal protocol, not forwarded to the view
- * - "manual"    — host-internal / UX side effect, not auto-measurable
+ * Where the requirement is observed (orthogonal to the `manual` flag below):
+ * - "in-view" — measurable from inside the iframe (this harness)
+ * - "host"    — only by inspecting the host's own surface (rendered DOM, the
+ *               host↔sandbox channel, or the conversation/model) from outside
+ *               the view; the view can't see its cross-origin container
+ * - "server"  — only the test server sees it (proxied call, resources/read)
+ *
+ * The `manual` flag (on a test) marks requirements that need a human action to
+ * trigger or verify (e.g. change the theme, cancel a tool, read the conversation).
  */
-export type Vantage = "in-view" | "server" | "agent" | "transport" | "manual";
+export type Vantage = "in-view" | "host" | "server";
 
 export interface SubtestResult {
   id: string;
@@ -33,6 +36,8 @@ export interface SubtestResult {
   status: Status;
   tag: Tag;
   vantage: Vantage;
+  /** Needs a human action to trigger or verify. */
+  manual: boolean;
   clause?: Clause;
   /** Why this result may be unreliable / what it can't distinguish. */
   caveat?: string;
@@ -149,6 +154,31 @@ export class TestContext {
   }
 
   /**
+   * Reads the CSP actually applied to this document — JS can't read its own
+   * response headers, so we use a `<meta>` CSP tag if present, otherwise trigger
+   * a `connect-src` violation and read the `securitypolicyviolation` event's
+   * `originalPolicy` (the full policy string). Returns null if neither yields it
+   * (e.g. header-only CSP that never fires a violation).
+   */
+  async readAppliedCsp(violationUrl = "https://blocked.invalid/"): Promise<string | null> {
+    const meta = document.querySelector('meta[http-equiv="Content-Security-Policy" i]') as HTMLMetaElement | null;
+    if (meta?.content) return meta.content;
+    return new Promise<string | null>((resolve) => {
+      const onViolation = (e: SecurityPolicyViolationEvent) => {
+        clearTimeout(timer);
+        document.removeEventListener("securitypolicyviolation", onViolation);
+        resolve(e.originalPolicy || null);
+      };
+      const timer = setTimeout(() => {
+        document.removeEventListener("securitypolicyviolation", onViolation);
+        resolve(null);
+      }, 1500);
+      document.addEventListener("securitypolicyviolation", onViolation);
+      void fetch(violationUrl, { mode: "no-cors", cache: "no-store" }).catch(() => {});
+    });
+  }
+
+  /**
    * Returns true if the host rejects a `tools/call` for `name` (e.g. the
    * visibility guard rejecting an app's call to a model-only tool).
    */
@@ -167,6 +197,7 @@ interface TestDef {
   name: string;
   tag: Tag;
   vantage: Vantage;
+  manual: boolean;
   clause?: Clause;
   caveat?: string;
   timeoutMs: number;
@@ -178,6 +209,8 @@ const registry: TestDef[] = [];
 export interface TestOptions {
   tag?: Tag;
   vantage?: Vantage;
+  /** Requires a human action to trigger or verify (e.g. change theme, cancel a tool). */
+  manual?: boolean;
   clause?: Clause;
   /** A warning about what this result can't distinguish or where it may mislead. */
   caveat?: string;
@@ -196,6 +229,7 @@ export function mcp_test(
     fn,
     tag: opts.tag ?? "core",
     vantage: opts.vantage ?? "in-view",
+    manual: opts.manual ?? false,
     clause: opts.clause,
     caveat: opts.caveat,
     timeoutMs: opts.timeoutMs ?? 5000,
@@ -254,6 +288,7 @@ export async function runAll(app: App, signals: HostSignals = pendingSignals()):
       status,
       tag: def.tag,
       vantage: def.vantage,
+      manual: def.manual,
       clause: def.clause,
       caveat: def.caveat,
       message,
