@@ -13,7 +13,7 @@ run the suite, and read the results — all inside the host's own UI.
 - The conformance server URL:
 
   ```
-  https://mcp-apps-conformance-9ebc82fa.alpic.live/mcp
+  https://mcp-apps-conformance.alpic.live/mcp
   ```
 
 ## 1. Add the conformance server to your host

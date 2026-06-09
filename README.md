@@ -12,7 +12,7 @@ It ships a single `ui://` test page that renders **inside the host's sandboxed i
 
 Connect this MCP server to the host you want to test, then prompt the host to run the suite:
 
-- **Server URL:** `https://mcp-apps-conformance-9ebc82fa.alpic.live/mcp`
+- **Server URL:** `https://mcp-apps-conformance.alpic.live/mcp`
 - **Prompt:** *“Run the MCP Apps conformance test suite against this host using the `run_conformance` tool, then I'll click Run.”*
 
 The host renders the runner; click **Run conformance tests** to see results. Full walkthrough → **[How to run against your host](docs/how-to/run-against-your-host.md)**.
