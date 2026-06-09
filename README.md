@@ -24,6 +24,7 @@ The host renders the runner; click **Run conformance tests** to see results. Ful
 | [How to run against your host](docs/how-to/run-against-your-host.md) | Connect the server to a host and run the suite (start here) |
 | [Host conformance catalogue](docs/reference/catalogue.md) | Every host requirement — its clause, vantage, and status |
 | [How the conformance model works](docs/explanation/conformance-model.md) | The WPT analogy, the vantage model, the trust model, and what's deferred |
+| [Strategy & open questions](docs/strategy-and-open-questions.md) | Draft for the working group — the trust-test and results-storage problems |
 
 ## Scope
 
