@@ -16,7 +16,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
   - `manual` — host-internal / UX side effect, not auto-measurable
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **12 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have
+> **13 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have
 > reserved IDs; tests fill in against this same catalogue. Many requirements are
 > **not** `in-view` — those await a later server-side / agent-driven harness (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
@@ -35,9 +35,9 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | `security/sandbox-message-forwarding` | Sandbox forwards Host↔View messages for any non-`ui/notifications/sandbox-` method. ⚠️ only transitively (if broken, nothing works) | MUST | in-view | ⬜ |
 | `security/sandbox-no-self-requests` | Sandbox does not originate its own requests. ⚠️ not observable from the view | SHOULD NOT | transport | ⬜ |
 | `security/csp-construct-from-domains` | Host constructs CSP headers from the declared domains (verified via fetch allow/deny) | MUST | in-view | ⬜ |
-| `security/csp-default-deny` | With no `ui.csp`, host applies the restrictive default (`connect-src 'none'`, …). ⚠️ a generic fetch failure (CORS/network) can mask a real CSP block | MUST | in-view | ✅ |
-| `security/csp-allow-declared` | A declared `connectDomains` origin is permitted (positive control). ⚠️ needs a CSP-declaring resource (per-page split) | MUST | in-view | ⬜ |
-| `security/csp-no-loosening` | Host never allows undeclared domains — blocks connections to them (may further restrict) | MUST NOT | in-view | ⬜ |
+| `security/csp-default-deny` | With **no** `ui.csp`, host applies the restrictive default (`connect-src 'none'`, …). ⚠️ needs a dedicated **no-CSP** resource — the current runner declares a CSP, so this "omitted" path isn't exercised | MUST | in-view | ⬜ |
+| `security/csp-allow-declared` | A declared `connectDomains` origin is permitted (positive control). The runner declares `connectDomains: ["https://modelcontextprotocol.io"]`. ⚠️ a network failure also reads as "not allowed", so the origin must be reachable | MUST | in-view | ✅ |
+| `security/csp-no-loosening` | Even with a CSP declared, an **undeclared** origin stays blocked. Backed by `csp-allow-declared` as the positive control, so the block is genuinely the CSP | MUST NOT | in-view | ✅ |
 | `security/permissions-allow-attr` | Sandbox sets the inner iframe `allow` attribute from declared permissions (feature detection) | MAY | in-view | ⬜ |
 | `security/csp-audit-log` | Host logs CSP configurations for security review. ⚠️ host-internal, not auto-measurable | SHOULD | manual | ⬜ |
 | `security/external-domain-warning` | Host warns users when a UI requires external domain access. ⚠️ UX side effect | SHOULD | manual | ⬜ |

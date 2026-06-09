@@ -41,26 +41,6 @@ mcp_test(
   },
 );
 
-// ── security ───────────────────────────────────────────────────────────────
-// With no CSP declared, the host MUST enforce the restrictive default
-// (connect-src 'none'), so a fetch to an undeclared origin is blocked.
-mcp_test(
-  "security/csp-default-deny",
-  "restrictive CSP default blocks undeclared origin",
-  async (t: TestContext) => {
-    const blocked = await t.expectFetchBlocked("https://example.com/");
-    t.assert(
-      blocked,
-      "fetch to an undeclared origin must be blocked by the default CSP (connect-src 'none')",
-    );
-  },
-  {
-    clause: "MUST",
-    vantage: "in-view",
-    caveat:
-      "A generic fetch failure (CORS/network) is indistinguishable here from a real CSP block. Hardening: listen for a `securitypolicyviolation` event, and pair with `security/csp-allow-declared` (needs a CSP-declaring resource) as a positive control.",
-  },
-);
 
 // ── tools ──────────────────────────────────────────────────────────────────
 // The host MUST proxy tools/call from the view to the server and return the
@@ -235,5 +215,44 @@ mcp_test(
     clause: "SHOULD",
     vantage: "in-view",
     caveat: "SHOULD — assumes the current mode is stable between reading hostContext and the request.",
+  },
+);
+
+// ── security · CSP ───────────────────────────────────────────────────────────
+// The runner resource declares `_meta.ui.csp.connectDomains: ["…/modelcontextprotocol.io"]`,
+// so these two form a positive/negative pair: the allowed origin proves
+// connectivity works, so a block of the undeclared origin can only be the CSP
+// (not a network failure). (The "omitted CSP → restrictive default" case,
+// security/csp-default-deny, needs a no-CSP resource and is deferred.)
+const CSP_ALLOWED = "https://modelcontextprotocol.io/";
+const CSP_UNDECLARED = "https://example.com/";
+
+// security — a declared connectDomains origin MUST be permitted (positive control).
+mcp_test(
+  "security/csp-allow-declared",
+  "declared connectDomains origin is allowed",
+  async (t: TestContext) => {
+    const allowed = await t.expectFetchAllowed(CSP_ALLOWED);
+    t.assert(allowed, `a fetch to the declared origin ${CSP_ALLOWED} must be allowed by the host's CSP`);
+  },
+  {
+    clause: "MUST",
+    vantage: "in-view",
+    caveat: `The runner declares connectDomains: ["${CSP_ALLOWED}"]. ⚠️ a network failure also reads as "not allowed", so the origin must be reachable.`,
+  },
+);
+
+// security — even with a CSP declared, an UNDECLARED origin MUST stay blocked.
+mcp_test(
+  "security/csp-no-loosening",
+  "undeclared origin stays blocked when a CSP is declared",
+  async (t: TestContext) => {
+    const blocked = await t.expectFetchBlocked(CSP_UNDECLARED);
+    t.assert(blocked, `the host must not allow the undeclared origin ${CSP_UNDECLARED} (no loosening beyond declared domains)`);
+  },
+  {
+    clause: "MUST NOT",
+    vantage: "in-view",
+    caveat: `Backed by csp-allow-declared as the positive control: the declared origin works, so blocking this one is genuinely the CSP, not a blanket fetch failure.`,
   },
 );

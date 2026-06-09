@@ -22,6 +22,10 @@ import { z } from "zod";
 const RUNNER_URI = "ui://conformance/runner";
 const VIEW_HTML = resolve(process.cwd(), "dist/view/index.html");
 
+// The runner declares a CSP so the suite can test both directions: this origin
+// is ALLOWED (connectDomains), and any other origin must stay blocked.
+const CSP_ALLOWED_ORIGIN = "https://modelcontextprotocol.io";
+
 function loadRunnerHtml(): string {
   if (existsSync(VIEW_HTML)) return readFileSync(VIEW_HTML, "utf-8");
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px">
@@ -34,17 +38,19 @@ export function createServer(): McpServer {
     version: "0.1.0",
   });
 
+  const cspMeta = { ui: { csp: { connectDomains: [CSP_ALLOWED_ORIGIN] } } };
   registerAppResource(
     server,
     "Conformance Runner",
     RUNNER_URI,
-    { description: "Runs the MCP Apps conformance suite inside the host." },
+    { description: "Runs the MCP Apps conformance suite inside the host.", _meta: cspMeta },
     () => ({
       contents: [
         {
           uri: RUNNER_URI,
           mimeType: RESOURCE_MIME_TYPE,
           text: loadRunnerHtml(),
+          _meta: cspMeta,
         },
       ],
     }),

@@ -109,6 +109,15 @@ export class TestContext {
   }
 
   /**
+   * Returns true if a request to `url` is allowed out (CSP permits it). The
+   * positive control for declared `connectDomains`. ⚠️ a network error also
+   * reads as "not allowed", so point this at a reliably reachable origin.
+   */
+  async expectFetchAllowed(url: string): Promise<boolean> {
+    return !(await this.expectFetchBlocked(url));
+  }
+
+  /**
    * Returns true if the host rejects a `tools/call` for `name` (e.g. the
    * visibility guard rejecting an app's call to a model-only tool).
    */
