@@ -1,5 +1,7 @@
 # MCP Apps Conformance
 
+![MCP Apps Conformance Screenshot](screenshot.png)
+
 A **host-conformance test runner for the MCP Apps spec** ([SEP-1865 · `2026-01-26`](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx), extension id `io.modelcontextprotocol/ui`), modeled on [web-platform-tests](https://web-platform-tests.org).
 
 It ships a single `ui://` test page that renders **inside the host's sandboxed iframe**, drives the `postMessage`/JSON-RPC bridge, asserts the host's behaviour against the spec, and shows `PASS`/`FAIL` right in the iframe.
