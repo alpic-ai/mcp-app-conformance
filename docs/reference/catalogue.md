@@ -15,7 +15,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 - **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify: change the theme, cancel a tool, close the view, read the conversation, observe a prompt.
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **17 of 45 host requirements implemented** (all `in-view`, no `manual`). The `⬜`
+> **18 of 45 host requirements implemented** (all `in-view`, no `manual`). The `⬜`
 > rows have reserved IDs; tests fill in against this same catalogue. The `host`
 > and `· manual` rows await a later host-inspection / human-driven harness (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
@@ -108,4 +108,4 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
 | `capabilities/mimetypes-required` | Host's UI capability declaration includes `mimeTypes`. ⚠️ negotiation, server-observed | REQUIRED | server | ⬜ |
-| `capabilities/server-passthrough` | Host may forward View messages to the server for non-`ui/` methods; should ensure the View's MCP connection is spec-compliant (transitively observable) | MAY · SHOULD | in-view | ⬜ |
+| `capabilities/server-passthrough` | Host forwards non-`ui/` MCP methods from the view to the server. Tested via `resources/list` (`listServerResources` → expects `ui://conformance/runner` back), distinct from `tools/proxy-call`. Gated on `serverResources` (INFO otherwise) | MAY · SHOULD | in-view | ✅ |

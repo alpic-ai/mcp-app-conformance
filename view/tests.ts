@@ -360,3 +360,31 @@ mcp_test(
       "Flexible mode only (reports INFO if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
   },
 );
+
+// ── capabilities ─────────────────────────────────────────────────────────────
+// The host MAY forward non-ui/ MCP methods from the view to the server. We test
+// this with resources/list (distinct from tools/proxy-call's tools/call): the
+// view calls listServerResources → the host must forward it → we get the
+// server's own ui:// resource back.
+mcp_test(
+  "capabilities/server-passthrough",
+  "host forwards resources/list from the view to the server",
+  async (t: TestContext) => {
+    if (!t.app.getHostCapabilities()?.serverResources) {
+      t.info("host does not advertise serverResources — resource passthrough not supported");
+      return;
+    }
+    const res = await t.app.listServerResources();
+    const uris = (res.resources ?? []).map((r) => r.uri);
+    t.assert(
+      uris.includes("ui://conformance/runner"),
+      `host must forward resources/list to the server (expected ui://conformance/runner, got: ${JSON.stringify(uris)})`,
+    );
+  },
+  {
+    clause: "SHOULD",
+    vantage: "in-view",
+    caveat:
+      "Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources; reports INFO otherwise.",
+  },
+);
