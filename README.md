@@ -2,9 +2,11 @@
 
 A **WPT-style conformance & interoperability test platform for the MCP Apps spec** ([SEP-1865 · `2026-01-26`](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx), extension id `io.modelcontextprotocol/ui`).
 
-The model is lifted directly from [web-platform-tests](https://web-platform-tests.org): one reference **test server** ships `ui://` test pages; each page runs **inside the host's sandboxed iframe**, drives the `postMessage`/JSON-RPC bridge, and reports `PASS/FAIL`. Point every host at the *same* server and compare columns on a grid — that's the interop signal.
+The model is lifted directly from [web-platform-tests](https://web-platform-tests.org): one reference **test server** ships a `ui://` test page; it runs **inside the host's sandboxed iframe**, drives the `postMessage`/JSON-RPC bridge, asserts the host's behaviour, and shows `PASS/FAIL` right in the iframe.
 
 > **The host is the browser. The `ui://` page is the WPT test. The bridge is `testharness.js`.**
+
+> **POC scope:** the **runner** only — results render inside the iframe; they are not persisted or aggregated. Cross-host result collection and a comparison grid are future work (see Roadmap).
 
 ## Host conformance catalogue
 
@@ -108,42 +110,37 @@ included). App/View- and server-directed requirements are intentionally excluded
 | `capabilities/mimetypes-required` | Host's UI capability declaration includes `mimeTypes`. ⚠️ negotiation, server-observed | REQUIRED | server | ⬜ |
 | `capabilities/server-passthrough` | Host may forward View messages to the server for non-`ui/` methods; should ensure the View's MCP connection is spec-compliant (transitively observable) | MAY · SHOULD | in-view | ⬜ |
 
-> **12 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have reserved IDs; tests fill in against the same catalogue, and each host becomes a column in the grid. Note how many requirements are **not** `in-view` — that's the case for server-side judging and a later agent-driven harness.
+> **12 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have reserved IDs; tests fill in against the same catalogue. Note how many requirements are **not** `in-view` — that's the case for a later server-side / agent-driven harness.
 
 ## Architecture
 
 ```
-test server (this repo)  ──URL──►  HOST under test (Alpic playground, Claude, …)
-  • ui://conformance/runner          renders runner in sandboxed iframe
-  • run_conformance   (model+app)    runner drives the bridge, asserts,
-  • conformance_probe (app-only)     reports results back via report_results
-  • report_results    (app-only)  ◄──
-        │
-        ▼  results/history.jsonl  →  GET /results  →  dashboard grid (host-by-host)
+test server (this repo)  ──URL──►  HOST under test (ChatGPT, Claude, …)
+  • ui://conformance/runner          renders the runner in a sandboxed iframe
+  • run_conformance   (model+app)    user clicks "Run tests" in the iframe →
+  • conformance_probe (app-only)     the runner drives the bridge, asserts, and
+  • model_only_probe  (model-only)   shows PASS/FAIL in-place (nothing persisted)
 ```
 
-- `server/` — reference MCP server (Streamable HTTP `/mcp`, Node-only`)
-- `view/` — the runner View + `testharness.ts` (the `mcp_test()` harness) + `tests.ts` (the catalogue)
-- `dashboard/` — static host-by-host conformance grid, served at `/`
+- `server/` — reference MCP server (Streamable HTTP `/mcp`, Node-only)
+- `view/` — React runner (ext-apps `useApp`) + `testharness.ts` (the `mcp_test()` harness) + `tests.ts` (the catalogue)
 
 ## Run it
 
 ```bash
 npm install
 npm run build          # vite single-file bundles the view → dist/view/index.html; tsc builds the server
-npm run start          # http://localhost:3000/mcp  (dashboard at http://localhost:3000/)
+npm run start          # http://localhost:3000/mcp
 # or: npm run dev      # watch mode (vite --watch + tsx watch)
 ```
 
 ### Point a host at it
 
-- In the host, call the **`run_conformance`** tool. The runner renders, runs the suite, and posts results to `report_results`.
-- Refresh `http://localhost:3000/` to see the grid update.
+- In the host, call the **`run_conformance`** tool to render the runner, then click **"Run conformance tests"**. Results render inline in the iframe.
 
 ## Roadmap
 
-- Work down the catalogue above, turning `⬜` into `✅`. Near-term: the CSP deny+allow pair (`security/csp-default-deny` ✅ + `security/csp-allow-declared`), `visibility/*`, and the `lifecycle/*` tool notifications.
-- Move judging server-side: the View emits **raw observations**, the server applies the assertions and corroborates proxy/resource tests from its own vantage (deterministic, auditable, not host-editable).
-- Tag tests `core` vs `host-specific` so strict hosts aren't penalised for unsupported shims.
-- Add columns: Claude, ChatGPT, Goose — where the interop divergence actually shows.
-- Split the single runner into isolated per-test `ui://` pages once isolation matters.
+- Work down the catalogue above, turning `⬜` into `✅`. Near-term: the CSP deny+allow pair (`security/csp-default-deny` ✅ + `security/csp-allow-declared`), and the `lifecycle/*` tool notifications.
+- Order gesture-gated tests (display mode) first so they run under fresh user activation on strict hosts.
+- Split the single runner into isolated per-test `ui://` pages once isolation matters (needed for the per-resource CSP tests).
+- **Beyond the POC:** collect results across hosts (server-side or a dedicated sink), add a host-by-host comparison grid, and move judging server-side (the View emits raw observations; the server applies the assertions — deterministic, auditable, not host-editable).

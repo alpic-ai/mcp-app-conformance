@@ -49,6 +49,7 @@ function ConformanceRunner() {
     },
   });
 
+  // POC scope: results are rendered in the iframe only — not reported anywhere.
   const run = useCallback(async () => {
     if (!app) return;
     setRunning(true);
@@ -56,21 +57,6 @@ function ConformanceRunner() {
     setRows(results);
     setRunning(false);
     setRan(true);
-
-    const host = app.getHostVersion();
-    try {
-      await app.callServerTool({
-        name: "report_results",
-        arguments: {
-          host: host?.name ?? "unknown-host",
-          hostVersion: host?.version ?? "",
-          specVersion: "2025-11-25",
-          results,
-        },
-      });
-    } catch (e) {
-      console.error("[conformance] report_results failed:", e);
-    }
   }, [app]);
 
   const host = app?.getHostVersion();
