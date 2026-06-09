@@ -60,7 +60,12 @@ function ConformanceRunner() {
   }, [app]);
 
   const host = app?.getHostVersion();
+  // INFO rows are capability signals, not pass/fail — exclude them from the score.
   const pass = rows.filter((r) => r.status === "PASS").length;
+  const failed = rows.filter((r) => r.status === "FAIL" || r.status === "TIMEOUT").length;
+  const info = rows.filter((r) => r.status === "INFO").length;
+  const gradeable = rows.length - info;
+  const summaryText = `${pass}/${gradeable} passing${info ? ` · ${info} info` : ""}`;
   const hostLabel = error ? "error" : app ? `${host?.name ?? "unknown"}${host?.version ? ` v${host.version}` : ""}` : "connecting…";
 
   return (
@@ -72,7 +77,7 @@ function ConformanceRunner() {
         </div>
         <div className="head-actions">
           {ran && (
-            <span className={pass === rows.length ? "summary ok" : "summary bad"}>{pass}/{rows.length} passing</span>
+            <span className={failed === 0 ? "summary ok" : "summary bad"}>{summaryText}</span>
           )}
           <button className="run-btn" onClick={run} disabled={!app || running}>
             {running ? "Running…" : ran ? "Re-run tests" : "Run conformance tests"}

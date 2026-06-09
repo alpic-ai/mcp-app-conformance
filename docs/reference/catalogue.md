@@ -6,7 +6,7 @@ included). App/View- and server-directed requirements are intentionally excluded
 this suite certifies **hosts**, so every test is a host test. IDs carry no actor
 prefix and are namespaced by the spec **capability area** (WPT-path style).
 
-- **Status:** `✅` implemented · `⬜` planned (id reserved, test not yet written).
+- **Status:** `✅` implemented · `⬜` planned (id reserved, test not yet written). Optional (`MAY`) checks may report a runtime **`INFO`** signal ("does the host do it or not") instead of pass/fail.
 - **Clause:** the RFC-2119 keyword the spec uses (`MUST` / `MUST NOT` / `SHOULD` / `SHOULD NOT` / `MAY` / `REQUIRED`).
 - **Vantage** — where the requirement can actually be observed:
   - `in-view` — from inside the iframe (this runner)
@@ -16,7 +16,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
   - `manual` — host-internal / UX side effect, not auto-measurable
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **13 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have
+> **15 of ~35 host requirements implemented** (all `in-view`). The `⬜` rows have
 > reserved IDs; tests fill in against this same catalogue. Many requirements are
 > **not** `in-view` — those await a later server-side / agent-driven harness (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
@@ -49,8 +49,8 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 |----|-------------|--------|---------|--------|
 | `lifecycle/initialize-capabilities` | Host responds to `ui/initialize` with `hostCapabilities` in `McpUiInitializeResult` | MUST | in-view | ✅ |
 | `lifecycle/tool-input` | Host sends `ui/notifications/tool-input` with complete arguments after the View's initialize completes (via `ontoolinput`) | MUST | in-view | ✅ |
-| `lifecycle/tool-input-partial` | Host may stream `ui/notifications/tool-input-partial` zero+ times before `tool-input`. ⚠️ needs the agent to stream args | MAY | agent | ⬜ |
-| `lifecycle/tool-input-partial-stop` | Host stops sending partials once `tool-input` is sent. ⚠️ needs streaming args | MUST | agent | ⬜ |
+| `lifecycle/tool-input-partial` | Host may stream `ui/notifications/tool-input-partial` before `tool-input`. Reported as a capability **signal** (runtime `INFO`, not pass/fail). ⚠️ partials only appear when the agent streams tool args | MAY | in-view | ✅ |
+| `lifecycle/tool-input-partial-stop` | Host stops sending `ui/notifications/tool-input-partial` once `tool-input` is sent. ⚠️ only catches a violation if the host streams partials (our launcher has none), so usually passes vacuously | MUST | in-view | ✅ |
 | `lifecycle/tool-result` | Host sends `ui/notifications/tool-result` when execution completes (if the View is displayed; via `ontoolresult`) | MUST | in-view | ✅ |
 | `lifecycle/tool-cancelled` | Host sends `ui/notifications/tool-cancelled` if execution is cancelled. ⚠️ needs a cancellation trigger | MUST | agent | ⬜ |
 | `lifecycle/teardown-notify` | Host sends a teardown notification before tearing down the View. ⚠️ needs a teardown trigger | MUST | agent | ⬜ |

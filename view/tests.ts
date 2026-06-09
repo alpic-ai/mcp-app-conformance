@@ -183,6 +183,48 @@ mcp_test(
   },
 );
 
+// lifecycle — host MUST stop sending tool-input-partial once tool-input is sent.
+mcp_test(
+  "lifecycle/tool-input-partial-stop",
+  "host stops tool-input-partial once tool-input is sent",
+  async (t: TestContext) => {
+    // Wait (bounded) for tool-input so "after" is well-defined, then leave a
+    // brief window to catch any illegal late partial.
+    await Promise.race([t.signals.toolInput, new Promise((r) => setTimeout(r, 1500))]);
+    await new Promise((r) => setTimeout(r, 300));
+    t.assert(
+      !t.signals.partials.sawAfterToolInput,
+      `host must not send ui/notifications/tool-input-partial after tool-input (observed ${t.signals.partials.count} partial(s))`,
+    );
+  },
+  {
+    clause: "MUST",
+    vantage: "in-view",
+    timeoutMs: 4000,
+    caveat:
+      "Only catches a violation if the host actually streams partials; our launcher tool has no streamable args, so this usually passes vacuously (0 partials observed).",
+  },
+);
+
+// lifecycle — streaming tool-input-partial is OPTIONAL (MAY), so this reports a
+// capability signal (INFO) rather than pass/fail: does the host stream or not?
+mcp_test(
+  "lifecycle/tool-input-partial",
+  "host streams tool-input-partial (optional)",
+  async (t: TestContext) => {
+    await Promise.race([t.signals.toolInput, new Promise((r) => setTimeout(r, 1500))]);
+    const n = t.signals.partials.count;
+    t.info(n > 0 ? `streams tool-input-partial — ${n} observed` : "does not stream tool-input-partial");
+  },
+  {
+    clause: "MAY",
+    vantage: "in-view",
+    timeoutMs: 4000,
+    caveat:
+      "MAY — reported as a capability signal (INFO), not pass/fail. Partials only appear when the agent streams tool arguments, which our launcher doesn't induce.",
+  },
+);
+
 // display — host MUST NOT switch to a mode absent from availableDisplayModes.
 // The runner declares only inline/fullscreen, so 'pip' is undeclared.
 mcp_test(

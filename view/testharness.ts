@@ -9,7 +9,11 @@
  */
 import type { App } from "@modelcontextprotocol/ext-apps";
 
-export type Status = "PASS" | "FAIL" | "TIMEOUT" | "NOTRUN";
+/**
+ * `INFO` = an optional (`MAY`) behaviour was observed and reported as a
+ * capability signal — neither pass nor fail. Use `t.info()` instead of asserting.
+ */
+export type Status = "PASS" | "FAIL" | "TIMEOUT" | "NOTRUN" | "INFO";
 export type Clause = "MUST" | "MUST NOT" | "SHOULD" | "SHOULD NOT" | "MAY" | "REQUIRED";
 /** "core" = spec-mandated; "host-specific" = shim/extension behaviour not scored against strict hosts. */
 export type Tag = "core" | "host-specific";
@@ -52,21 +56,39 @@ export class AssertionError extends Error {
 export interface HostSignals {
   toolInput: Promise<unknown>;
   toolResult: Promise<unknown>;
+  /**
+   * `ui/notifications/tool-input-partial` observations. Partials may arrive 0+
+   * times BEFORE `tool-input`; the spec forbids any after it. `sawAfterToolInput`
+   * flips true if the host violates that.
+   */
+  partials: { count: number; last: unknown; sawAfterToolInput: boolean };
 }
 
 export function captureHostSignals(app: App): HostSignals {
   let resolveInput!: (v: unknown) => void;
   let resolveResult!: (v: unknown) => void;
+  let toolInputArrived = false;
   const toolInput = new Promise<unknown>((r) => { resolveInput = r; });
   const toolResult = new Promise<unknown>((r) => { resolveResult = r; });
-  app.ontoolinput = (params) => resolveInput(params);
+  const partials = { count: 0, last: undefined as unknown, sawAfterToolInput: false };
+
+  app.ontoolinput = (params) => { toolInputArrived = true; resolveInput(params); };
+  app.ontoolinputpartial = (params) => {
+    partials.count += 1;
+    partials.last = params;
+    if (toolInputArrived) partials.sawAfterToolInput = true; // illegal: partial after tool-input
+  };
   app.ontoolresult = (result) => resolveResult(result);
-  return { toolInput, toolResult };
+  return { toolInput, toolResult, partials };
 }
 
 /** Never-resolving signals, used when runAll is called without capture. */
 function pendingSignals(): HostSignals {
-  return { toolInput: new Promise<unknown>(() => {}), toolResult: new Promise<unknown>(() => {}) };
+  return {
+    toolInput: new Promise<unknown>(() => {}),
+    toolResult: new Promise<unknown>(() => {}),
+    partials: { count: 0, last: undefined, sawAfterToolInput: false },
+  };
 }
 
 export class TestContext {
@@ -80,6 +102,15 @@ export class TestContext {
   readonly cleanups: Array<() => void | Promise<void>> = [];
   addCleanup(fn: () => void | Promise<void>): void {
     this.cleanups.push(fn);
+  }
+
+  /**
+   * Report a capability signal for an optional (`MAY`) behaviour instead of
+   * asserting. The result becomes `INFO` (not pass/fail) with this message.
+   */
+  infoMessage?: string;
+  info(message: string): void {
+    this.infoMessage = message;
   }
 
   assert(cond: unknown, msg: string): asserts cond {
@@ -211,6 +242,11 @@ export async function runAll(app: App, signals: HostSignals = pendingSignals()):
           console.error("[conformance] cleanup error:", e);
         }
       }
+    }
+    // An optional-behaviour report (t.info) becomes INFO unless the test failed.
+    if (status === "PASS" && t.infoMessage !== undefined) {
+      status = "INFO";
+      message = t.infoMessage;
     }
     results.push({
       id: def.id,

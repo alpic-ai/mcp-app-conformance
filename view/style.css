@@ -32,3 +32,4 @@ th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: 
 .st-fail { color: var(--fail); background: color-mix(in srgb, var(--fail) 14%, transparent); }
 .st-timeout { color: var(--timeout); background: color-mix(in srgb, var(--timeout) 14%, transparent); }
 .st-notrun { color: var(--notrun); background: color-mix(in srgb, var(--notrun) 14%, transparent); }
+.st-info { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
