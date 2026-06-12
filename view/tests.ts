@@ -388,3 +388,59 @@ mcp_test(
       "Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources; reports INFO otherwise.",
   },
 );
+
+// ── interactive · manual (human action → capture) ────────────────────────────
+// The host emits ui/notifications/context-changed when context fields change.
+// The operator changes the theme; we then capture hostContext in-view (updated
+// via onhostcontextchanged) and assert it actually changed.
+mcp_test(
+  "context/context-changed",
+  "host notifies the view when the user changes the theme",
+  async (t: TestContext) => {
+    const before = t.app.getHostContext()?.theme;
+    await t.requireUserAction(
+      `Toggle your host's theme (light ⇄ dark), then click Done. Current theme: "${before ?? "unknown"}".`,
+    );
+    const after = t.app.getHostContext()?.theme;
+    t.assert(after !== undefined, "host must expose `theme` in hostContext");
+    t.assert(
+      after !== before,
+      `the view's hostContext.theme didn't change (still "${after}") — the host must emit ui/notifications/context-changed`,
+    );
+  },
+  {
+    clause: "MAY",
+    vantage: "in-view",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "Human-in-the-loop: the operator changes the host theme, then we capture hostContext.theme in-view (via onhostcontextchanged). No change means the host never emitted context-changed.",
+  },
+);
+
+// ── interactive · manual (human declaration) ─────────────────────────────────
+// The host opens ui/open-link URLs in the user's browser / a new tab. The
+// sandboxed view can't observe a new tab (host vantage), so the operator
+// triggers the action and declares the outcome.
+mcp_test(
+  "links/open-external",
+  "ui/open-link opens the URL (human-verified)",
+  async (t: TestContext) => {
+    const opened = await t.confirmWithUser(
+      "Click “Open link”. Your host should open https://modelcontextprotocol.io in a new tab. Did it open?",
+      {
+        label: "🔗 Open link",
+        run: () => t.app.openLink({ url: "https://modelcontextprotocol.io/" }),
+      },
+    );
+    t.assert(opened, "operator reported the host did not open the link (ui/open-link not honoured)");
+  },
+  {
+    clause: "SHOULD",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "Human-verified: the sandboxed view can't see the host open a tab, so the operator confirms the outcome after triggering ui/open-link.",
+  },
+);

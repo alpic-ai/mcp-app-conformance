@@ -12,12 +12,16 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
   - `in-view` — from inside the iframe (this runner)
   - `host` — only by inspecting the host's own surface (rendered DOM, the host↔sandbox channel, or the conversation/model) from outside the view
   - `server` — only the test server sees it
-- **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify: change the theme, cancel a tool, close the view, read the conversation, observe a prompt.
+- **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify (change the theme, cancel a tool, open a link, read the conversation). Implemented `· manual` checks prompt the operator mid-run in one of two ways: **action → capture** (do X, then the runner reads the resulting state) or **human declaration** (trigger X, then confirm *worked* / *didn't*).
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **18 of 45 host requirements implemented** (all `in-view`, no `manual`). The `⬜`
-> rows have reserved IDs; tests fill in against this same catalogue. The `host`
-> and `· manual` rows await a later host-inspection / human-driven harness (see
+> **20 of 45 host requirements implemented** — mostly `in-view`, plus the first
+> two human-in-the-loop (`· manual`) checks that prompt the operator during the
+> run: `context/context-changed` (toggle the theme → the runner captures the
+> change) and `links/open-external` (trigger the link → you confirm it opened).
+> The `⬜` rows have reserved IDs; tests fill in against this same catalogue. The
+> remaining `host` (DOM / channel-inspection), `server`, and multi-turn `· manual`
+> rows await a later host-inspection harness (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
 
 ## `security/` — sandboxing & CSP  ·  §Sandbox proxy, §Host Behavior, §Security Considerations
@@ -75,7 +79,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
 | `context/initialize-hostcontext` | Host includes `hostContext` in `McpUiInitializeResult`. ⚠️ SHOULD — a host may legitimately omit it | SHOULD | in-view | ✅ |
-| `context/context-changed` | Host emits `ui/notifications/context-changed` when context fields change. Captured in-view via `onhostcontextchanged`; the user must change the theme/display mode | MAY | in-view · manual | ⬜ |
+| `context/context-changed` | Host emits `ui/notifications/context-changed` when context fields change. Captured in-view via `onhostcontextchanged`; the user must change the theme/display mode | MAY | in-view · manual | ✅ |
 
 ## `dimensions/` — sizing  ·  §Container Dimensions
 
@@ -96,7 +100,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
-| `links/open-external` | Host opens a `ui/open-link` URL in the user's default browser or a new tab. ⚠️ side effect outside the iframe — observe the opened tab | SHOULD | host · manual | ⬜ |
+| `links/open-external` | Host opens a `ui/open-link` URL in the user's default browser or a new tab. ⚠️ side effect outside the iframe — operator confirms the opened tab | SHOULD | host · manual | ✅ |
 | `messages/add-to-conversation` | Host adds a `ui/message` to the conversation context, preserving the role. ⚠️ verify in the host's conversation | SHOULD | host · manual | ⬜ |
 | `messages/consent` | Host may request user consent for a `ui/message`. ⚠️ observe the host's consent prompt | MAY | host · manual | ⬜ |
 | `model-context/provide-future-turns` | Host provides `ui/update-model-context` to the model in future turns. ⚠️ multi-turn — verify the model uses it next turn | SHOULD | host · manual | ⬜ |

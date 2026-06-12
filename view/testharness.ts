@@ -96,8 +96,60 @@ function pendingSignals(): HostSignals {
   };
 }
 
+/** An optional button rendered alongside an interaction prompt that fires the action under test. */
+export interface InteractionTrigger {
+  label: string;
+  run: () => void | Promise<unknown>;
+}
+
+/**
+ * A request for human input, surfaced to the runner UI:
+ * - "ack"     — the operator performs an action in the host, then clicks Done.
+ *               The test captures and asserts the resulting state itself.
+ * - "confirm" — the operator judges an outcome the view can't observe (e.g. a
+ *               link opening in a new tab) and answers worked / didn't.
+ */
+export interface InteractionRequest {
+  kind: "ack" | "confirm";
+  prompt: string;
+  trigger?: InteractionTrigger;
+}
+
+/** Resolves to the operator's verdict (always true for "ack", the answer for "confirm"). */
+export type RequestInteraction = (req: InteractionRequest) => Promise<boolean>;
+
 export class TestContext {
-  constructor(public readonly app: App, public readonly signals: HostSignals) {}
+  constructor(
+    public readonly app: App,
+    public readonly signals: HostSignals,
+    requestInteraction?: RequestInteraction,
+  ) {
+    if (requestInteraction) this.requestInteraction = requestInteraction;
+  }
+
+  /** Bridge to the runner UI for human-in-the-loop tests; injected by runAll. */
+  requestInteraction: RequestInteraction = () => {
+    throw new AssertionError("this test needs a human, but no interaction channel was provided");
+  };
+
+  /**
+   * Pause the run and ask the operator to do something in the host (e.g. change
+   * the theme), then continue once they click Done. The test then captures and
+   * asserts the resulting state itself. Pass a `trigger` to also render an
+   * action button (e.g. one that sends a notification).
+   */
+  async requireUserAction(prompt: string, trigger?: InteractionTrigger): Promise<void> {
+    await this.requestInteraction({ kind: "ack", prompt, trigger });
+  }
+
+  /**
+   * Ask the operator to confirm an outcome the view can't observe (e.g. a link
+   * opened in a new tab). Returns their verdict. Pass a `trigger` to render a
+   * button that fires the action under test (e.g. sends ui/open-link).
+   */
+  async confirmWithUser(prompt: string, trigger?: InteractionTrigger): Promise<boolean> {
+    return this.requestInteraction({ kind: "confirm", prompt, trigger });
+  }
 
   /**
    * Cleanups run after the test completes — pass OR fail — in reverse order.
@@ -241,6 +293,9 @@ export function getRegistry(): ReadonlyArray<Omit<TestDef, "fn">> {
 }
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  // ms = 0 (or non-finite) disables the timeout — for human-in-the-loop tests
+  // that legitimately block on operator input for an unbounded time.
+  if (!ms || !Number.isFinite(ms)) return p;
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new AssertionError(`timed out after ${ms}ms`)),
@@ -253,10 +308,38 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-export async function runAll(app: App, signals: HostSignals = pendingSignals()): Promise<SubtestResult[]> {
+export interface RunHooks {
+  /** Fires just before a test runs (its row should show a running state). */
+  onStart?: (id: string) => void;
+  /** Fires as each test settles, for incremental/live UI updates. */
+  onResult?: (result: SubtestResult) => void;
+  /**
+   * Fires once, just before the first manual (human-in-the-loop) test — the
+   * automatic batch is done. The UI uses this to switch to fullscreen for the
+   * interactive prompts (the auto tests run inline so resize tests work).
+   */
+  onEnterManual?: () => void | Promise<void>;
+  /** Channel the runner UI uses to collect human input for manual tests. */
+  requestInteraction?: RequestInteraction;
+}
+
+export async function runAll(
+  app: App,
+  signals: HostSignals = pendingSignals(),
+  hooks: RunHooks = {},
+): Promise<SubtestResult[]> {
+  // Run the automatic tests first so the grid fills quickly, then the
+  // human-in-the-loop (manual) ones, which pause the run for operator input.
+  const ordered = [...registry].sort((a, b) => Number(a.manual) - Number(b.manual));
   const results: SubtestResult[] = [];
-  for (const def of registry) {
-    const t = new TestContext(app, signals); // fresh context per test → isolated cleanups
+  let enteredManual = false;
+  for (const def of ordered) {
+    if (def.manual && !enteredManual) {
+      enteredManual = true;
+      await hooks.onEnterManual?.();
+    }
+    hooks.onStart?.(def.id);
+    const t = new TestContext(app, signals, hooks.requestInteraction); // fresh context per test → isolated cleanups
     const start = performance.now();
     let status: Status = "PASS";
     let message: string | undefined;
@@ -282,7 +365,7 @@ export async function runAll(app: App, signals: HostSignals = pendingSignals()):
       status = "INFO";
       message = t.infoMessage;
     }
-    results.push({
+    const result: SubtestResult = {
       id: def.id,
       name: def.name,
       status,
@@ -293,7 +376,9 @@ export async function runAll(app: App, signals: HostSignals = pendingSignals()):
       caveat: def.caveat,
       message,
       durationMs: Math.round(performance.now() - start),
-    });
+    };
+    results.push(result);
+    hooks.onResult?.(result);
   }
   return results;
 }
