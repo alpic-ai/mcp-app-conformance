@@ -12,7 +12,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
   - `in-view` — from inside the iframe (this runner)
   - `host` — only by inspecting the host's own surface (rendered DOM, the host↔sandbox channel, or the conversation/model) from outside the view
   - `server` — only the test server sees it
-- **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify (change the theme, cancel a tool, open a link, read the conversation). Implemented `· manual` checks prompt the operator mid-run in one of two ways: **action → capture** (do X, then the runner reads the resulting state) or **human declaration** (trigger X, then confirm *worked* / *didn't*).
+- **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify (change the theme, cancel a tool, open a link, read the conversation). Implemented `· manual` checks prompt the operator mid-run in one of two ways: **action → auto-detect** (do X; the runner passes the moment the host's notification arrives — e.g. toggle the theme) or **human declaration** (trigger X, then confirm *worked* / *didn't*).
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
 > **20 of 45 host requirements implemented** — mostly `in-view`, plus the first

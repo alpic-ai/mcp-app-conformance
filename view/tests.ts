@@ -398,14 +398,19 @@ mcp_test(
   "host notifies the view when the user changes the theme",
   async (t: TestContext) => {
     const before = t.app.getHostContext()?.theme;
-    await t.requireUserAction(
-      `Toggle your host's theme (light ⇄ dark), then click Done. Current theme: "${before ?? "unknown"}".`,
-    );
-    const after = t.app.getHostContext()?.theme;
-    t.assert(after !== undefined, "host must expose `theme` in hostContext");
-    t.assert(
-      after !== before,
-      `the view's hostContext.theme didn't change (still "${after}") — the host must emit ui/notifications/context-changed`,
+    // Resolve as soon as a host-context-changed carrying a *different* theme
+    // arrives — the test then passes automatically (no confirmation click).
+    const themeChanged = new Promise<void>((resolve) => {
+      const handler = (params: { theme?: unknown }) => {
+        const next = params?.theme ?? t.app.getHostContext()?.theme;
+        if (next !== undefined && next !== before) resolve();
+      };
+      t.app.addEventListener("hostcontextchanged", handler);
+      t.addCleanup(() => t.app.removeEventListener("hostcontextchanged", handler));
+    });
+    await t.awaitUserAction(
+      `Toggle your host's theme (light ⇄ dark) — I'll detect it automatically. Current: "${before ?? "unknown"}".`,
+      themeChanged,
     );
   },
   {
@@ -414,7 +419,7 @@ mcp_test(
     manual: true,
     timeoutMs: 0,
     caveat:
-      "Human-in-the-loop: the operator changes the host theme, then we capture hostContext.theme in-view (via onhostcontextchanged). No change means the host never emitted context-changed.",
+      "Human-in-the-loop but auto-passing: the operator toggles the theme and the runner resolves on the host-context-changed notification (no confirmation click). Skip if the host doesn't emit it.",
   },
 );
 

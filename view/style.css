@@ -66,3 +66,4 @@ tr.running { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .verdict-btn.no { color: var(--fail); border-color: color-mix(in srgb, var(--fail) 55%, var(--line)); }
 .verdict-btn:hover, .trigger-btn:hover { filter: brightness(1.05); }
 .interaction-actions .verdict-btn.ok { margin-left: auto; }
+.awaiting { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-right: auto; }

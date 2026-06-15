@@ -81,7 +81,13 @@ function ConformanceRunner() {
       },
       requestInteraction: (req) =>
         new Promise<boolean>((resolve) => {
-          setInteraction({ req, resolve: (v) => { setInteraction(null); resolve(v); } });
+          const settle = (v: boolean) => { setInteraction(null); resolve(v); };
+          // "await" mode: pass automatically the moment the test's signal settles
+          // (e.g. the host-context-changed notification arrives).
+          if (req.kind === "await" && req.signal) {
+            req.signal.then(() => settle(true), () => settle(false));
+          }
+          setInteraction({ req, resolve: settle });
         }),
     });
 
@@ -170,7 +176,12 @@ function ConformanceRunner() {
                   {interaction.req.trigger.label}
                 </button>
               )}
-              {interaction.req.kind === "ack" ? (
+              {interaction.req.kind === "await" ? (
+                <>
+                  <span className="awaiting"><span className="spinner" /> detecting…</span>
+                  <button className="verdict-btn no" onClick={() => interaction.resolve(false)}>Skip</button>
+                </>
+              ) : interaction.req.kind === "ack" ? (
                 <button className="verdict-btn ok" onClick={() => interaction.resolve(true)}>Done</button>
               ) : (
                 <>

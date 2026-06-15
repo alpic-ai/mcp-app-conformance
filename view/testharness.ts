@@ -110,9 +110,15 @@ export interface InteractionTrigger {
  *               link opening in a new tab) and answers worked / didn't.
  */
 export interface InteractionRequest {
-  kind: "ack" | "confirm";
+  kind: "ack" | "confirm" | "await";
   prompt: string;
   trigger?: InteractionTrigger;
+  /**
+   * For kind "await": a promise the runner watches. When it resolves, the
+   * prompt auto-dismisses and the test passes — no confirmation click. The
+   * operator performs the action; the host's notification settles the promise.
+   */
+  signal?: Promise<unknown>;
 }
 
 /** Resolves to the operator's verdict (always true for "ack", the answer for "confirm"). */
@@ -149,6 +155,16 @@ export class TestContext {
    */
   async confirmWithUser(prompt: string, trigger?: InteractionTrigger): Promise<boolean> {
     return this.requestInteraction({ kind: "confirm", prompt, trigger });
+  }
+
+  /**
+   * Show a prompt and pass automatically when `signal` resolves — e.g. the host
+   * sends a notification after the operator acts, so no Done click is needed.
+   * The operator can still Skip, which fails the test.
+   */
+  async awaitUserAction(prompt: string, signal: Promise<unknown>, trigger?: InteractionTrigger): Promise<void> {
+    const detected = await this.requestInteraction({ kind: "await", prompt, trigger, signal });
+    if (!detected) throw new AssertionError("skipped before the expected host notification arrived");
   }
 
   /**
