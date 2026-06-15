@@ -556,10 +556,14 @@ mcp_test(
 // if any, is shown at load — there's no view-side trigger).
 mcp_test(
   "security/external-domain-warning",
-  "host warns about external domain access (human-verified)",
+  "host warns when the UI accesses an external domain (human-verified)",
   async (t: TestContext) => {
     const warned = await t.confirmWithUser(
-      "This app declares external network access to modelcontextprotocol.io (csp.connectDomains). When you loaded it, did your host warn you about external domain access?",
+      "Click “Open external link” — the app is trying to reach an external domain. Did your host warn you about the external-domain access?",
+      {
+        label: "🔗 Open external link",
+        run: () => t.app.openLink({ url: "https://modelcontextprotocol.io/" }),
+      },
     );
     t.assert(warned, "operator reported no external-domain-access warning was shown");
   },
@@ -569,7 +573,7 @@ mcp_test(
     manual: true,
     timeoutMs: 0,
     caveat:
-      "Recall check: any warning is shown when the host loads a UI declaring csp.connectDomains, before the run — no view-side trigger. Distinct from ui/open-link (see links/open-external).",
+      "Human-verified: triggers an external-domain access via ui/open-link and the operator confirms the host warned. Pairs with links/open-external, which checks the link actually opens.",
   },
 );
 

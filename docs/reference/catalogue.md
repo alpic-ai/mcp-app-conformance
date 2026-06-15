@@ -45,7 +45,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | `security/csp-no-loosening` | Even with a CSP declared, an **undeclared** origin stays blocked. Backed by `csp-allow-declared` as the positive control, so the block is genuinely the CSP | MUST NOT | in-view | ✅ |
 | `security/permissions-allow-attr` | Sandbox sets the inner iframe `allow` attribute from declared permissions. ⚠️ the `allow` attribute lives on the cross-origin parent's iframe — inspect the host's DOM (feature detection from the view is gesture-gated and doesn't confirm the attribute) | MAY | host | ⬜ |
 | `security/csp-audit-log` | Host logs CSP configurations for security review. ⚠️ inspect the host's logs | SHOULD | host · manual | ⬜ |
-| `security/external-domain-warning` | Host warns users when a UI requires external domain access. ⚠️ recall check — the warning shows at load (no view-side trigger); operator confirms | SHOULD | host · manual | ✅ |
+| `security/external-domain-warning` | Host warns users when the UI accesses an external domain. App triggers `ui/open-link` to an external URL; operator confirms a warning appeared (pairs with `links/open-external`) | SHOULD | host · manual | ✅ |
 | `security/global-allowlist` | Host applies global domain allow/block lists. ⚠️ configure host policy, then verify | MAY | host · manual | ⬜ |
 
 ## `lifecycle/` — handshake & tool notifications  ·  §Lifecycle, §Data Passing
