@@ -449,3 +449,161 @@ mcp_test(
       "Human-verified: the sandboxed view can't see the host open a tab, so the operator confirms the outcome after triggering ui/open-link.",
   },
 );
+
+// messages — host adds a ui/message to the conversation. The view can't read the
+// host's conversation, so the operator triggers it and confirms it appeared.
+mcp_test(
+  "messages/add-to-conversation",
+  "ui/message is added to the conversation (human-verified)",
+  async (t: TestContext) => {
+    if (!t.app.getHostCapabilities()?.message) {
+      t.info("host does not advertise ui/message support");
+      return;
+    }
+    const added = await t.confirmWithUser(
+      "Click “Send message” — a message from this app should appear in your conversation. Did it?",
+      {
+        label: "💬 Send message",
+        run: () =>
+          t.app.sendMessage({
+            role: "user",
+            content: [{ type: "text", text: "Conformance check: this message was sent by the MCP App via ui/message." }],
+          }),
+      },
+    );
+    t.assert(added, "operator reported the ui/message was not added to the conversation");
+  },
+  {
+    clause: "SHOULD",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "Human-verified: the view can't read the host's conversation, so the operator confirms the message appeared (role preserved).",
+  },
+);
+
+// messages — the host MAY ask for consent before adding a ui/message. Optional,
+// so this reports a capability signal (INFO) from the operator's observation.
+mcp_test(
+  "messages/consent",
+  "host may request consent before adding a ui/message",
+  async (t: TestContext) => {
+    if (!t.app.getHostCapabilities()?.message) {
+      t.info("host does not advertise ui/message support");
+      return;
+    }
+    const consented = await t.confirmWithUser(
+      "Click “Send message”. Your host MAY show a consent prompt first — did one appear?",
+      {
+        label: "💬 Send message",
+        run: () => t.app.sendMessage({ role: "user", content: [{ type: "text", text: "Conformance check: consent-prompt probe." }] }),
+      },
+    );
+    t.info(consented ? "host showed a consent prompt" : "host added the message without a consent prompt");
+  },
+  {
+    clause: "MAY",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "MAY — reported as an INFO signal: consent is optional, so neither answer fails. The operator reports whether a prompt appeared.",
+  },
+);
+
+// visibility — app-only tools (visibility lacking "model") must be hidden from
+// the agent's tool list. We make the app ask the agent to enumerate its tools
+// (via ui/message), then the operator confirms the app-only tool is absent.
+mcp_test(
+  "visibility/app-tool-hidden",
+  "host hides app-only tools from the agent (human-verified)",
+  async (t: TestContext) => {
+    if (!t.app.getHostCapabilities()?.message) {
+      t.info("host does not advertise ui/message support");
+      return;
+    }
+    const hidden = await t.confirmWithUser(
+      "Click “Ask the agent”, then read its reply. The app-only tool `conformance_probe` MUST NOT appear in the agent's tool list — is it correctly absent?",
+      {
+        label: "🤖 Ask the agent",
+        run: () =>
+          t.app.sendMessage({
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "From the MCP Apps Conformance server specifically, list every tool you can call, by name (ignore tools from other connected servers).",
+              },
+            ],
+          }),
+      },
+    );
+    t.assert(hidden, "operator reported the app-only tool `conformance_probe` was visible to the agent (must be hidden)");
+  },
+  {
+    clause: "MUST NOT",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      'Human-verified via the agent\'s own tool enumeration: `conformance_probe` is app-only (visibility ["app"]) so it must not be in the model-facing tools/list. Relies on the agent answering truthfully.',
+  },
+);
+
+// security — the host warns when a UI declares external domain access. The
+// runner declares csp.connectDomains, so this is a recall check (the warning,
+// if any, is shown at load — there's no view-side trigger).
+mcp_test(
+  "security/external-domain-warning",
+  "host warns about external domain access (human-verified)",
+  async (t: TestContext) => {
+    const warned = await t.confirmWithUser(
+      "This app declares external network access to modelcontextprotocol.io (csp.connectDomains). When you loaded it, did your host warn you about external domain access?",
+    );
+    t.assert(warned, "operator reported no external-domain-access warning was shown");
+  },
+  {
+    clause: "SHOULD",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "Recall check: any warning is shown when the host loads a UI declaring csp.connectDomains, before the run — no view-side trigger. Distinct from ui/open-link (see links/open-external).",
+  },
+);
+
+// model-context — context provided via ui/update-model-context must reach the
+// model on a future turn. The app seeds a secret code, then asks the agent for
+// it (via ui/message); the operator confirms the agent recalled it.
+mcp_test(
+  "model-context/provide-future-turns",
+  "ui/update-model-context reaches the model next turn (human-verified)",
+  async (t: TestContext) => {
+    if (!t.app.getHostCapabilities()?.updateModelContext) {
+      t.info("host does not advertise ui/update-model-context support");
+      return;
+    }
+    const recalled = await t.confirmWithUser(
+      "Click “Seed + ask”. The app sets a secret code via update-model-context, then asks the agent for it. Did the agent answer with “MCP-APP-7421”?",
+      {
+        label: "🧠 Seed + ask",
+        run: async () => {
+          await t.app.updateModelContext({
+            content: [{ type: "text", text: "The secret conformance code is MCP-APP-7421. Remember it for later." }],
+          });
+          await t.app.sendMessage({ role: "user", content: [{ type: "text", text: "What is the secret conformance code I gave you?" }] });
+        },
+      },
+    );
+    t.assert(recalled, "operator reported the agent did not receive the model context on the next turn");
+  },
+  {
+    clause: "SHOULD",
+    vantage: "host",
+    manual: true,
+    timeoutMs: 0,
+    caveat:
+      "Multi-turn, human-verified: seeds ui/update-model-context then asks the agent to recall it; confirms the host fed the context to the model on the following turn.",
+  },
+);

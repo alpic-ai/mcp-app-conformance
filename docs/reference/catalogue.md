@@ -15,13 +15,15 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 - **`· manual`** — an orthogonal flag (appended to the vantage) for requirements that need a **human action** to trigger or verify (change the theme, cancel a tool, open a link, read the conversation). Implemented `· manual` checks prompt the operator mid-run in one of two ways: **action → auto-detect** (do X; the runner passes the moment the host's notification arrives — e.g. toggle the theme) or **human declaration** (trigger X, then confirm *worked* / *didn't*).
 - ⚠️ flags a measurement caveat — see [How to run against your host → Read the results](../how-to/run-against-your-host.md#4-read-the-results) and [the conformance model](../explanation/conformance-model.md).
 
-> **20 of 45 host requirements implemented** — mostly `in-view`, plus the first
-> two human-in-the-loop (`· manual`) checks that prompt the operator during the
-> run: `context/context-changed` (toggle the theme → the runner captures the
-> change) and `links/open-external` (trigger the link → you confirm it opened).
-> The `⬜` rows have reserved IDs; tests fill in against this same catalogue. The
-> remaining `host` (DOM / channel-inspection), `server`, and multi-turn `· manual`
-> rows await a later host-inspection harness (see
+> **25 of 45 host requirements implemented** — a mix of `in-view` automatic
+> checks and seven human-in-the-loop (`· manual`) ones that prompt the operator
+> during the run: an **auto-detect** check (`context/context-changed` — toggle
+> the theme, the runner passes on the notification) plus **human-declaration**
+> checks (`links/open-external`, `messages/add-to-conversation`,
+> `messages/consent`, `visibility/app-tool-hidden`, `security/external-domain-warning`,
+> `model-context/provide-future-turns`). The `⬜` rows have reserved IDs; tests
+> fill in against this same catalogue. The remaining rows need host
+> DOM/channel/log inspection or multi-turn setup (see
 > [what's deferred](../explanation/conformance-model.md#whats-deferred-beyond-the-poc)).
 
 ## `security/` — sandboxing & CSP  ·  §Sandbox proxy, §Host Behavior, §Security Considerations
@@ -43,7 +45,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | `security/csp-no-loosening` | Even with a CSP declared, an **undeclared** origin stays blocked. Backed by `csp-allow-declared` as the positive control, so the block is genuinely the CSP | MUST NOT | in-view | ✅ |
 | `security/permissions-allow-attr` | Sandbox sets the inner iframe `allow` attribute from declared permissions. ⚠️ the `allow` attribute lives on the cross-origin parent's iframe — inspect the host's DOM (feature detection from the view is gesture-gated and doesn't confirm the attribute) | MAY | host | ⬜ |
 | `security/csp-audit-log` | Host logs CSP configurations for security review. ⚠️ inspect the host's logs | SHOULD | host · manual | ⬜ |
-| `security/external-domain-warning` | Host warns users when a UI requires external domain access. ⚠️ observe the host's warning UI | SHOULD | host · manual | ⬜ |
+| `security/external-domain-warning` | Host warns users when a UI requires external domain access. ⚠️ recall check — the warning shows at load (no view-side trigger); operator confirms | SHOULD | host · manual | ✅ |
 | `security/global-allowlist` | Host applies global domain allow/block lists. ⚠️ configure host policy, then verify | MAY | host · manual | ⬜ |
 
 ## `lifecycle/` — handshake & tool notifications  ·  §Lifecycle, §Data Passing
@@ -64,7 +66,7 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
 | `tools/proxy-call` | Host proxies `tools/call` from the View to the server and returns the result (when advertising `serverTools`). Also corroborated server-side | MUST | in-view | ✅ |
-| `visibility/app-tool-hidden` | Host excludes tools lacking `"model"` visibility from the agent's `tools/list`. ⚠️ not visible to the view — inspect the host's model-facing tool list (e.g. ask the agent) | MUST NOT | host · manual | ⬜ |
+| `visibility/app-tool-hidden` | Host excludes tools lacking `"model"` visibility from the agent's `tools/list`. The app asks the agent (via `ui/message`) to enumerate the conformance server's tools; operator confirms the app-only `conformance_probe` is absent | MUST NOT | host · manual | ✅ |
 | `visibility/app-tool-call-guard` | Host rejects `tools/call` from apps for tools that don't include `"app"` visibility | MUST | in-view | ✅ |
 
 ## `resources/` — UI resource fetching  ·  §Resource Discovery
@@ -101,9 +103,9 @@ prefix and are namespaced by the spec **capability area** (WPT-path style).
 | ID | Requirement | Clause | Vantage | Status |
 |----|-------------|--------|---------|--------|
 | `links/open-external` | Host opens a `ui/open-link` URL in the user's default browser or a new tab. ⚠️ side effect outside the iframe — operator confirms the opened tab | SHOULD | host · manual | ✅ |
-| `messages/add-to-conversation` | Host adds a `ui/message` to the conversation context, preserving the role. ⚠️ verify in the host's conversation | SHOULD | host · manual | ⬜ |
-| `messages/consent` | Host may request user consent for a `ui/message`. ⚠️ observe the host's consent prompt | MAY | host · manual | ⬜ |
-| `model-context/provide-future-turns` | Host provides `ui/update-model-context` to the model in future turns. ⚠️ multi-turn — verify the model uses it next turn | SHOULD | host · manual | ⬜ |
+| `messages/add-to-conversation` | Host adds a `ui/message` to the conversation context, preserving the role. App triggers `ui/message`; operator confirms it appeared | SHOULD | host · manual | ✅ |
+| `messages/consent` | Host may request user consent for a `ui/message`. App triggers `ui/message`; operator reports whether a consent prompt showed (INFO — optional) | MAY | host · manual | ✅ |
+| `model-context/provide-future-turns` | Host provides `ui/update-model-context` to the model in future turns. App seeds a secret code then asks the agent for it; operator confirms recall | SHOULD | host · manual | ✅ |
 | `model-context/last-wins` | If several updates arrive before the next user message, host sends only the last. ⚠️ multi-turn | SHOULD | host · manual | ⬜ |
 | `model-context/overwrite-defer-dedupe-display` | Host may overwrite / defer / dedupe / display context updates. ⚠️ multi-turn / UX | MAY | host · manual | ⬜ |
 
