@@ -274,7 +274,7 @@ mcp_test(
   "security/csp-allow-declared",
   "declared connectDomains origin is allowed",
   async (t: TestContext) => {
-    const allowed = await t.expectFetchAllowed(CSP_ALLOWED);
+    const allowed = !(await t.expectFetchBlocked(CSP_ALLOWED));
     t.assert(allowed, `a fetch to the declared origin ${CSP_ALLOWED} must be allowed by the host's CSP`);
   },
   {

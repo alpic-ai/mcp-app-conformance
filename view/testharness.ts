@@ -14,9 +14,7 @@ import type { App } from "@modelcontextprotocol/ext-apps";
  * capability signal — neither pass nor fail. Use `t.info()` instead of asserting.
  */
 export type Status = "PASS" | "FAIL" | "TIMEOUT" | "NOTRUN" | "INFO";
-export type Clause = "MUST" | "MUST NOT" | "SHOULD" | "SHOULD NOT" | "MAY" | "REQUIRED";
-/** "core" = spec-mandated; "host-specific" = shim/extension behaviour not scored against strict hosts. */
-export type Tag = "core" | "host-specific";
+export type Clause = "MUST" | "MUST NOT" | "SHOULD" | "MAY";
 /**
  * Where the requirement is observed (orthogonal to the `manual` flag below):
  * - "in-view" — measurable from inside the iframe (this harness)
@@ -34,7 +32,6 @@ export interface SubtestResult {
   id: string;
   name: string;
   status: Status;
-  tag: Tag;
   vantage: Vantage;
   /** Needs a human action to trigger or verify. */
   manual: boolean;
@@ -87,15 +84,6 @@ export function captureHostSignals(app: App): HostSignals {
   return { toolInput, toolResult, partials };
 }
 
-/** Never-resolving signals, used when runAll is called without capture. */
-function pendingSignals(): HostSignals {
-  return {
-    toolInput: new Promise<unknown>(() => {}),
-    toolResult: new Promise<unknown>(() => {}),
-    partials: { count: 0, last: undefined, sawAfterToolInput: false },
-  };
-}
-
 /** An optional button rendered alongside an interaction prompt that fires the action under test. */
 export interface InteractionTrigger {
   label: string;
@@ -104,13 +92,13 @@ export interface InteractionTrigger {
 
 /**
  * A request for human input, surfaced to the runner UI:
- * - "ack"     — the operator performs an action in the host, then clicks Done.
- *               The test captures and asserts the resulting state itself.
  * - "confirm" — the operator judges an outcome the view can't observe (e.g. a
  *               link opening in a new tab) and answers worked / didn't.
+ * - "await"   — the operator acts and the test's `signal` promise (a host
+ *               notification) auto-settles it; see `signal` below.
  */
 export interface InteractionRequest {
-  kind: "ack" | "confirm" | "await";
+  kind: "confirm" | "await";
   prompt: string;
   trigger?: InteractionTrigger;
   /**
@@ -137,16 +125,6 @@ export class TestContext {
   requestInteraction: RequestInteraction = () => {
     throw new AssertionError("this test needs a human, but no interaction channel was provided");
   };
-
-  /**
-   * Pause the run and ask the operator to do something in the host (e.g. change
-   * the theme), then continue once they click Done. The test then captures and
-   * asserts the resulting state itself. Pass a `trigger` to also render an
-   * action button (e.g. one that sends a notification).
-   */
-  async requireUserAction(prompt: string, trigger?: InteractionTrigger): Promise<void> {
-    await this.requestInteraction({ kind: "ack", prompt, trigger });
-  }
 
   /**
    * Ask the operator to confirm an outcome the view can't observe (e.g. a link
@@ -213,15 +191,6 @@ export class TestContext {
   }
 
   /**
-   * Returns true if a request to `url` is allowed out (CSP permits it). The
-   * positive control for declared `connectDomains`. ⚠️ a network error also
-   * reads as "not allowed", so point this at a reliably reachable origin.
-   */
-  async expectFetchAllowed(url: string): Promise<boolean> {
-    return !(await this.expectFetchBlocked(url));
-  }
-
-  /**
    * Reads the CSP actually applied to this document — JS can't read its own
    * response headers, so we use a `<meta>` CSP tag if present, otherwise trigger
    * a `connect-src` violation and read the `securitypolicyviolation` event's
@@ -263,7 +232,6 @@ export class TestContext {
 interface TestDef {
   id: string;
   name: string;
-  tag: Tag;
   vantage: Vantage;
   manual: boolean;
   clause?: Clause;
@@ -275,7 +243,6 @@ interface TestDef {
 const registry: TestDef[] = [];
 
 export interface TestOptions {
-  tag?: Tag;
   vantage?: Vantage;
   /** Requires a human action to trigger or verify (e.g. change theme, cancel a tool). */
   manual?: boolean;
@@ -295,7 +262,6 @@ export function mcp_test(
     id,
     name,
     fn,
-    tag: opts.tag ?? "core",
     vantage: opts.vantage ?? "in-view",
     manual: opts.manual ?? false,
     clause: opts.clause,
@@ -341,7 +307,7 @@ export interface RunHooks {
 
 export async function runAll(
   app: App,
-  signals: HostSignals = pendingSignals(),
+  signals: HostSignals,
   hooks: RunHooks = {},
 ): Promise<SubtestResult[]> {
   // Run the automatic tests first so the grid fills quickly, then the
@@ -385,7 +351,6 @@ export async function runAll(
       id: def.id,
       name: def.name,
       status,
-      tag: def.tag,
       vantage: def.vantage,
       manual: def.manual,
       clause: def.clause,

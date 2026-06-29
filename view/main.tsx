@@ -70,7 +70,7 @@ function ConformanceRunner() {
     // mode); reset to inline in case a previous run left us fullscreen.
     try { await app.requestDisplayMode({ mode: "inline" }); } catch { /* host may decline */ }
 
-    const results = await runAll(app, signalsRef.current ?? undefined, {
+    const results = await runAll(app, signalsRef.current!, {
       onStart: (id) => setRunningId(id),
       onResult: (r) =>
         setRows((prev) => prev.map((row) => (row.id === r.id ? toRow(r) : row))),
@@ -181,8 +181,6 @@ function ConformanceRunner() {
                   <span className="awaiting"><span className="spinner" /> detecting…</span>
                   <button className="verdict-btn no" onClick={() => interaction.resolve(false)}>Skip</button>
                 </>
-              ) : interaction.req.kind === "ack" ? (
-                <button className="verdict-btn ok" onClick={() => interaction.resolve(true)}>Done</button>
               ) : (
                 <>
                   <button className="verdict-btn ok" onClick={() => interaction.resolve(true)}>✅ It worked</button>
