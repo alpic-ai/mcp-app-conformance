@@ -225,6 +225,21 @@ mcp_test(
   },
 );
 
+// The ext-apps SDK strictly validates the host's requestDisplayMode RESULT
+// against the spec schema (`mode` ∈ inline|fullscreen|pip, required). A
+// non-conforming host (observed on Cursor) replies without a valid `mode`,
+// which makes the SDK throw a Zod error mid-call. Catch it so the test reports
+// a clean conformance verdict instead of a raw validation dump.
+type ModeResult = { ok: true; mode: unknown } | { ok: false; error: string };
+async function requestMode(app: TestContext["app"], mode: "inline" | "fullscreen" | "pip"): Promise<ModeResult> {
+  try {
+    const res = (await app.requestDisplayMode({ mode })) as { mode?: unknown };
+    return { ok: true, mode: res?.mode };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 // display — host MUST NOT switch to a mode absent from availableDisplayModes.
 // The runner declares only inline/fullscreen, so 'pip' is undeclared.
 mcp_test(
@@ -233,8 +248,11 @@ mcp_test(
   async (t: TestContext) => {
     const original = t.app.getHostContext()?.displayMode ?? "inline";
     t.addCleanup(async () => { await t.app.requestDisplayMode({ mode: original }); });
-    const res = (await t.app.requestDisplayMode({ mode: "pip" })) as { mode?: unknown };
-    t.assert(res?.mode !== "pip", "host must not switch the view to a mode it didn't declare (pip)");
+    const res = await requestMode(t.app, "pip");
+    // A malformed/rejected result means the host did not switch to pip — which
+    // is exactly what MUST NOT requires, so it passes.
+    const mode = res.ok ? res.mode : undefined;
+    t.assert(mode !== "pip", "host must not switch the view to a mode it didn't declare (pip)");
   },
   {
     clause: "MUST NOT",
@@ -250,8 +268,9 @@ mcp_test(
   async (t: TestContext) => {
     const current = t.app.getHostContext()?.displayMode ?? "inline";
     t.addCleanup(async () => { await t.app.requestDisplayMode({ mode: current }); });
-    const res = (await t.app.requestDisplayMode({ mode: "pip" })) as { mode?: unknown };
-    t.assertEquals(res?.mode, current, "host should return the current display mode for an unavailable request");
+    const res = await requestMode(t.app, "pip");
+    t.assert(res.ok, `host returned a malformed result with no valid mode for an unavailable request${res.ok ? "" : `: ${res.error}`}`);
+    t.assertEquals(res.mode, current, "host should return the current display mode for an unavailable request");
   },
   {
     clause: "SHOULD",
