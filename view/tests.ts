@@ -961,8 +961,21 @@ mcp_test(
 		});
 		await t.app.sendToolListChanged().catch(() => {});
 		await t.awaitUserAction(
-			"In the host's chat, ask the agent to call the app tool named “conformance_ping”. I'll detect the call automatically.",
+			"Click “Ask the agent” — the app asks the agent to call conformance_ping. I'll detect the call automatically.",
 			called,
+			{
+				label: "🤖 Ask the agent",
+				run: () =>
+					t.app.sendMessage({
+						role: "user",
+						content: [
+							{
+								type: "text",
+								text: 'Call the app tool named "conformance_ping" now (it is provided by the MCP Apps Conformance server).',
+							},
+						],
+					}),
+			},
 		);
 		t.assert(fired, "the app-registered tool was never called");
 	},

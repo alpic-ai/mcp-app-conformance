@@ -10,6 +10,7 @@
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { useDriveListener, useStateBroadcast } from "./automation";
 import {
 	captureHostSignals,
 	getRegistry,
@@ -229,6 +230,54 @@ function ConformanceRunner() {
 			? `${host?.name ?? "unknown"}${host?.version ? ` v${host.version}` : ""}`
 			: "connecting…";
 
+	// ── external-driver remote control (see automation.ts) ──────────────────────
+	// Broadcast a machine-readable snapshot so a Playwright driver can read results
+	// and know when a manual test is waiting, without scraping the DOM.
+	useStateBroadcast(() => ({
+		host: hostLabel,
+		connected: !!app,
+		running,
+		ran,
+		runningId,
+		total: rows.length,
+		done,
+		counts: rows.reduce<Record<string, number>>((a, r) => {
+			a[r.status] = (a[r.status] ?? 0) + 1;
+			return a;
+		}, {}),
+		summary: summaryText,
+		rows: rows.map((r) => ({
+			id: r.id,
+			status: r.status,
+			clause: r.clause,
+			vantage: r.vantage,
+			manual: r.manual,
+			message: r.message,
+		})),
+		interaction: interaction
+			? {
+					prompt: interaction.req.prompt,
+					kind: interaction.req.kind,
+					trigger: interaction.req.trigger?.label ?? null,
+				}
+			: null,
+	}));
+
+	// Drive non-gesture steps over postMessage. Gesture-gated triggers (open-link,
+	// download, message, sampling) must be REAL clicks — the driver clicks the
+	// trigger button directly; "trigger" here is only a same-origin fallback.
+	useDriveListener((action) => {
+		if (action === "run") {
+			if (!running) void run();
+		} else if (action === "trigger") {
+			if (interaction?.req.trigger) runTrigger(interaction.req);
+		} else if (action === "yes") {
+			interaction?.resolve(true);
+		} else if (action === "no" || action === "skip") {
+			interaction?.resolve(false);
+		}
+	});
+
 	return (
 		<main className="wrap">
 			<header className="head">
@@ -244,7 +293,13 @@ function ConformanceRunner() {
 							{summaryText}
 						</span>
 					)}
-					<button className="run-btn" onClick={run} disabled={!app || running}>
+					<button
+						type="button"
+						className="run-btn"
+						data-testid="run"
+						onClick={run}
+						disabled={!app || running}
+					>
 						{running
 							? `Running ${done}/${rows.length}…`
 							: ran
@@ -335,7 +390,9 @@ function ConformanceRunner() {
 						<div className="interaction-actions">
 							{interaction.req.trigger && (
 								<button
+									type="button"
 									className="trigger-btn"
+									data-testid="trigger"
 									onClick={() => runTrigger(interaction.req)}
 								>
 									{interaction.req.trigger.label}
@@ -347,7 +404,9 @@ function ConformanceRunner() {
 										<span className="spinner" /> detecting…
 									</span>
 									<button
+										type="button"
 										className="verdict-btn no"
+										data-testid="verdict-skip"
 										onClick={() => interaction.resolve(false)}
 									>
 										Skip
@@ -356,13 +415,17 @@ function ConformanceRunner() {
 							) : (
 								<>
 									<button
+										type="button"
 										className="verdict-btn ok"
+										data-testid="verdict-yes"
 										onClick={() => interaction.resolve(true)}
 									>
 										✅ It worked
 									</button>
 									<button
+										type="button"
 										className="verdict-btn no"
+										data-testid="verdict-no"
 										onClick={() => interaction.resolve(false)}
 									>
 										❌ It didn’t
