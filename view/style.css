@@ -67,3 +67,19 @@ tr.running { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .verdict-btn:hover, .trigger-btn:hover { filter: brightness(1.05); }
 .interaction-actions .verdict-btn.ok { margin-left: auto; }
 .awaiting { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-right: auto; }
+
+/* Inspector — collapsible JSON viewer for host-provided values */
+.inspector { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.inspector-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); margin: 0 0 10px; }
+.json-panel { border: 1px solid var(--line); border-radius: 9px; margin-bottom: 8px; overflow: hidden; }
+.json-panel > summary { cursor: pointer; padding: 9px 12px; font-family: var(--mono); font-size: 12px; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 8px; }
+.json-panel > summary::-webkit-details-marker { display: none; }
+.json-panel > summary::before { content: "▸"; color: var(--muted); font-size: 10px; transition: transform 0.15s ease; }
+.json-panel[open] > summary::before { transform: rotate(90deg); }
+.json-empty { font-weight: 400; color: var(--muted); font-size: 11px; }
+.json { margin: 0; padding: 12px 14px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--ink) 4%, var(--bg)); font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre; tab-size: 2; }
+.json .j-key { color: var(--accent); }
+.json .j-str { color: var(--pass); }
+.json .j-num { color: var(--timeout); }
+.json .j-bool { color: var(--fail); }
+.json .j-null { color: var(--muted); }
