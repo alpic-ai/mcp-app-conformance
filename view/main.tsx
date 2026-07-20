@@ -124,7 +124,12 @@ function ConformanceRunner() {
 
 	const { app, error } = useApp({
 		appInfo: { name: "mcp-apps-conformance-runner", version: "0.1.0" },
-		capabilities: { availableDisplayModes: ["inline", "fullscreen"] },
+		// `tools` is required to register app-provided tools (app-tools/call);
+		// without it registerTool throws "Client does not support tool capability".
+		capabilities: {
+			availableDisplayModes: ["inline", "fullscreen"],
+			tools: { listChanged: true },
+		},
 		autoResize: true,
 		onAppCreated: (created) => {
 			signalsRef.current = captureHostSignals(created);
