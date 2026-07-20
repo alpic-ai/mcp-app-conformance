@@ -32,6 +32,7 @@ type Row = Pick<
 	| "manual"
 	| "caveat"
 	| "message"
+	| "value"
 >;
 
 const freshRows = (): Row[] =>
@@ -55,6 +56,7 @@ const toRow = (r: SubtestResult): Row => ({
 	manual: r.manual,
 	caveat: r.caveat,
 	message: r.message,
+	value: r.value,
 });
 
 /** A pending interaction request plus the resolver that settles the test. */
@@ -253,6 +255,7 @@ function ConformanceRunner() {
 			vantage: r.vantage,
 			manual: r.manual,
 			message: r.message,
+			value: r.value,
 		})),
 		interaction: interaction
 			? {

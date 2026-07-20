@@ -20,6 +20,7 @@ mcp_test(
 	"ui/initialize returns hostCapabilities",
 	(t: TestContext) => {
 		const caps = t.app.getHostCapabilities();
+		t.setValue(caps);
 		t.assert(
 			caps != null,
 			"host must return hostCapabilities after the ui/initialize handshake",
@@ -35,6 +36,7 @@ mcp_test(
 	"ui/initialize result carries hostContext",
 	(t: TestContext) => {
 		const ctx = t.app.getHostContext();
+		t.setValue(ctx);
 		t.assert(
 			ctx != null && typeof ctx === "object",
 			"host should provide hostContext",

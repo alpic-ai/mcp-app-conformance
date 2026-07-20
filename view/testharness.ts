@@ -39,6 +39,8 @@ export interface SubtestResult {
   /** Why this result may be unreliable / what it can't distinguish. */
   caveat?: string;
   message?: string;
+  /** An arbitrary value the test chose to surface (e.g. the captured hostCapabilities / hostContext). */
+  value?: unknown;
   durationMs: number;
 }
 
@@ -162,6 +164,16 @@ export class TestContext {
   infoMessage?: string;
   info(message: string): void {
     this.infoMessage = message;
+  }
+
+  /**
+   * Surface an arbitrary value on the result (shows up as `value` in the
+   * broadcast state / results.json). Use it to record what the host actually
+   * passed — e.g. the hostCapabilities or hostContext object — for auditing.
+   */
+  value?: unknown;
+  setValue(value: unknown): void {
+    this.value = value;
   }
 
   assert(cond: unknown, msg: string): asserts cond {
@@ -356,6 +368,7 @@ export async function runAll(
       clause: def.clause,
       caveat: def.caveat,
       message,
+      value: t.value,
       durationMs: Math.round(performance.now() - start),
     };
     results.push(result);
