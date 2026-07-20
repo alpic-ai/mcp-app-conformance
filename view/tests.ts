@@ -10,8 +10,43 @@
  * Requirements needing the server's or the agent's vantage live in the README
  * catalogue and will be covered by server-side judging / an agent harness.
  */
-import type { McpUiSupportedContentBlockModalities } from "@modelcontextprotocol/ext-apps";
+import type {
+	App,
+	McpUiSupportedContentBlockModalities,
+} from "@modelcontextprotocol/ext-apps";
 import { mcp_test, type TestContext } from "./testharness";
+
+// ── app-provided tool, registered ONCE at connect (see ensureAppToolRegistered) ──
+// Registering mid-run inside the last test was unreliable: a host may snapshot the
+// app's tool list before then, or mount a fresh widget instance for the follow-up
+// turn that never ran the registration — so the agent's call had nowhere to land.
+// Registering early keeps `conformance_ping` available for the whole session.
+let resolveAppToolCall: (() => void) | null = null;
+let appToolRegistered = false;
+
+export function ensureAppToolRegistered(app: App): void {
+	if (appToolRegistered) return;
+	appToolRegistered = true;
+	app.registerTool(
+		"conformance_ping",
+		{
+			title: "Conformance Ping",
+			description: "Conformance test tool — returns 'pong'.",
+		},
+		() => {
+			console.log("[conformance] conformance_ping CALLED by host");
+			resolveAppToolCall?.();
+			return { content: [{ type: "text", text: "pong" }] };
+		},
+	);
+	void app.sendToolListChanged().catch(() => {});
+}
+
+function nextAppToolCall(): Promise<void> {
+	return new Promise<void>((resolve) => {
+		resolveAppToolCall = resolve;
+	});
+}
 
 // ── lifecycle ──────────────────────────────────────────────────────────────
 // After ui/initialize, the host MUST expose its capabilities.
@@ -945,23 +980,10 @@ mcp_test(
 	"app-tools/call",
 	"host calls an app-registered tool (human-verified)",
 	async (t: TestContext) => {
-		let fired = false;
-		const called = new Promise<void>((resolve) => {
-			const handle = t.app.registerTool(
-				"conformance_ping",
-				{
-					title: "Conformance Ping",
-					description: "Conformance test tool — returns 'pong'.",
-				},
-				() => {
-					fired = true;
-					resolve();
-					return { content: [{ type: "text", text: "pong" }] };
-				},
-			);
-			t.addCleanup(() => handle.remove());
-		});
-		await t.app.sendToolListChanged().catch(() => {});
+		// conformance_ping is registered once at connect (ensureAppToolRegistered);
+		// here we just wait for the host to call it after we ask the agent to.
+		ensureAppToolRegistered(t.app);
+		const called = nextAppToolCall();
 		await t.awaitUserAction(
 			"Click “Ask the agent” — the app asks the agent to call conformance_ping. I'll detect the call automatically.",
 			called,
@@ -979,7 +1001,6 @@ mcp_test(
 					}),
 			},
 		);
-		t.assert(fired, "the app-registered tool was never called");
 	},
 	{
 		clause: "MAY",

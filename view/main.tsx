@@ -19,7 +19,7 @@ import {
 	runAll,
 	type SubtestResult,
 } from "./testharness";
-import "./tests";
+import { ensureAppToolRegistered } from "./tests";
 import "./style.css";
 
 type Row = Pick<
@@ -145,6 +145,13 @@ function ConformanceRunner() {
 	// when the host emits host-context-changed, e.g. a theme toggle).
 	useEffect(() => {
 		if (!app) return;
+		// Register the app-provided tool up front so the host has it for the whole
+		// session (mid-run registration in the last test was missed by the host).
+		try {
+			ensureAppToolRegistered(app);
+		} catch (e) {
+			console.error("[conformance] registerTool failed:", e);
+		}
 		const sync = () =>
 			setInspect((p) => ({
 				...p,
