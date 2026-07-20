@@ -41,6 +41,59 @@ mcp_test(
   },
 );
 
+// ── theming (§Theming — all soft; reported as capability signals) ─────────────
+// The host MAY pass theme CSS custom properties via hostContext.styles.variables.
+mcp_test(
+  "context/theme-variables",
+  "host provides theme CSS variables (styles.variables)",
+  (t: TestContext) => {
+    const vars = t.app.getHostContext()?.styles?.variables;
+    const keys = vars ? Object.keys(vars) : [];
+    t.info(keys.length ? `host provided ${keys.length} style variable(s)` : "host provided no style variables");
+  },
+  {
+    clause: "MAY",
+    vantage: "in-view",
+    caveat: "Optional (MAY). Signal only — inspect the exact values in the Inspector panel.",
+  },
+);
+
+// The host SHOULD use CSS light-dark() for theme-aware values — only observable
+// when styles.variables are passed, so reported as a signal rather than a fail.
+mcp_test(
+  "context/light-dark",
+  "theme-aware values use CSS light-dark()",
+  (t: TestContext) => {
+    const values = Object.values(t.app.getHostContext()?.styles?.variables ?? {});
+    if (!values.length) {
+      t.info("no style variables provided to inspect");
+      return;
+    }
+    const usesLightDark = values.some((v) => typeof v === "string" && v.includes("light-dark("));
+    t.info(usesLightDark ? "host uses light-dark() for theme-aware values" : "host provides variables but none use light-dark()");
+  },
+  {
+    clause: "SHOULD",
+    vantage: "in-view",
+    caveat: "SHOULD, and only observable when the host passes style variables. Non-color variables (radii, shadows) legitimately don't use light-dark(), so this is a signal, not a hard fail.",
+  },
+);
+
+// The host MAY provide custom fonts via hostContext.styles.css.fonts.
+mcp_test(
+  "context/theme-fonts",
+  "host provides custom fonts (styles.css.fonts)",
+  (t: TestContext) => {
+    const fonts = t.app.getHostContext()?.styles?.css?.fonts;
+    t.info(fonts ? `host provided custom font CSS (${fonts.length} chars)` : "host provided no custom fonts");
+  },
+  {
+    clause: "MAY",
+    vantage: "in-view",
+    caveat: "Optional (MAY). Signal only — inspect the font CSS in the Inspector panel.",
+  },
+);
+
 
 // ── tools ──────────────────────────────────────────────────────────────────
 // The host MUST proxy tools/call from the view to the server and return the
