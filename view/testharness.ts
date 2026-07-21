@@ -357,11 +357,13 @@ export async function runAll(
           console.error("[conformance] cleanup error:", e);
         }
       }
-    }
-    // An optional-behaviour report (t.info) becomes INFO unless the test failed.
-    if (status === "PASS" && t.infoMessage !== undefined) {
-      status = "INFO";
-      message = t.infoMessage;
+      // Return to inline after every test: some tests change the display mode
+      // (fullscreen/pip), and each test must start from a clean, known state.
+      try {
+        await app.requestDisplayMode({ mode: "inline" });
+      } catch {
+        /* host may decline */
+      }
     }
     const result: SubtestResult = {
       id: def.id,

@@ -238,9 +238,10 @@ function ConformanceRunner() {
 		[app],
 	);
 
-	// Human "Run all": full run with the fullscreen manual finale.
+	// Human "Run all": full run, inline throughout (each test resets to inline,
+	// so a fullscreen finale would only apply to the first manual test anyway).
 	const run = useCallback(
-		() => runTests(undefined, { reset: true, fullscreen: true }),
+		() => runTests(undefined, { reset: true, fullscreen: false }),
 		[runTests],
 	);
 
