@@ -321,10 +321,14 @@ export async function runAll(
   app: App,
   signals: HostSignals,
   hooks: RunHooks = {},
+  filter?: (def: { id: string; manual: boolean }) => boolean,
 ): Promise<SubtestResult[]> {
   // Run the automatic tests first so the grid fills quickly, then the
   // human-in-the-loop (manual) ones, which pause the run for operator input.
-  const ordered = [...registry].sort((a, b) => Number(a.manual) - Number(b.manual));
+  // `filter` selects a subset — e.g. auto-only, or a single test by id (the
+  // hybrid driver runs the auto batch at once, then each manual test alone).
+  const selected = filter ? registry.filter(filter) : [...registry];
+  const ordered = selected.sort((a, b) => Number(a.manual) - Number(b.manual));
   const results: SubtestResult[] = [];
   let enteredManual = false;
   for (const def of ordered) {

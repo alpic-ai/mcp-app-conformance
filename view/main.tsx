@@ -168,59 +168,81 @@ function ConformanceRunner() {
 		return () => app.removeEventListener("hostcontextchanged", sync);
 	}, [app]);
 
-	// POC scope: results are rendered in the iframe only — not reported anywhere.
-	const run = useCallback(async () => {
-		if (!app) return;
-		setRan(false);
-		setRows(freshRows());
-		setRunning(true);
-		// Automatic tests run inline (resize/dimension checks need flexible inline
-		// mode); reset to inline in case a previous run left us fullscreen.
-		try {
-			await app.requestDisplayMode({ mode: "inline" });
-		} catch {
-			/* host may decline */
-		}
-
-		const results = await runAll(app, signalsRef.current!, {
-			onStart: (id) => setRunningId(id),
-			onResult: (r) =>
-				setRows((prev) =>
-					prev.map((row) => (row.id === r.id ? toRow(r) : row)),
-				),
-			// Switch to fullscreen for the interactive finale — best-effort (some
-			// hosts may gate display-mode changes on a fresh user gesture).
-			onEnterManual: async () => {
+	// Core runner. `filter` selects which tests run; `reset` clears rows first
+	// (a full/auto run) vs. leaving them (a single-test run); `fullscreen` enters
+	// fullscreen for the manual finale (human "Run all" only — the hybrid driver
+	// runs manual tests one-by-one inline). Rows update via onResult (a merge), so
+	// a single-test run never wipes the others.
+	const runTests = useCallback(
+		async (
+			filter: ((d: { id: string; manual: boolean }) => boolean) | undefined,
+			opts: { reset: boolean; fullscreen: boolean },
+		) => {
+			if (!app) return;
+			if (opts.reset) {
+				setRan(false);
+				setRows(freshRows());
+			}
+			setRunning(true);
+			if (opts.reset) {
+				// Automatic tests run inline (resize/dimension checks need flexible
+				// inline mode); reset to inline in case a prior run left us fullscreen.
 				try {
-					await app.requestDisplayMode({ mode: "fullscreen" });
+					await app.requestDisplayMode({ mode: "inline" });
 				} catch {
 					/* host may decline */
 				}
-			},
-			requestInteraction: (req) =>
-				new Promise<boolean>((resolve) => {
-					const settle = (v: boolean) => {
-						setInteraction(null);
-						resolve(v);
-					};
-					// "await" mode: pass automatically the moment the test's signal settles
-					// (e.g. the host-context-changed notification arrives).
-					if (req.kind === "await" && req.signal) {
-						req.signal.then(
-							() => settle(true),
-							() => settle(false),
-						);
-					}
-					setInteraction({ req, resolve: settle });
-				}),
-		});
+			}
+			await runAll(
+				app,
+				signalsRef.current!,
+				{
+					onStart: (id) => setRunningId(id),
+					onResult: (r) =>
+						setRows((prev) =>
+							prev.map((row) => (row.id === r.id ? toRow(r) : row)),
+						),
+					onEnterManual: opts.fullscreen
+						? async () => {
+								try {
+									await app.requestDisplayMode({ mode: "fullscreen" });
+								} catch {
+									/* host may decline */
+								}
+							}
+						: undefined,
+					requestInteraction: (req) =>
+						new Promise<boolean>((resolve) => {
+							const settle = (v: boolean) => {
+								setInteraction(null);
+								resolve(v);
+							};
+							// "await" mode: pass automatically the moment the test's signal
+							// settles (e.g. the host-context-changed notification arrives).
+							if (req.kind === "await" && req.signal) {
+								req.signal.then(
+									() => settle(true),
+									() => settle(false),
+								);
+							}
+							setInteraction({ req, resolve: settle });
+						}),
+				},
+				filter,
+			);
+			setRunningId(null);
+			setInteraction(null);
+			setRunning(false);
+			setRan(true);
+		},
+		[app],
+	);
 
-		setRows(results.map(toRow));
-		setRunningId(null);
-		setInteraction(null);
-		setRunning(false);
-		setRan(true);
-	}, [app]);
+	// Human "Run all": full run with the fullscreen manual finale.
+	const run = useCallback(
+		() => runTests(undefined, { reset: true, fullscreen: true }),
+		[runTests],
+	);
 
 	const runTrigger = useCallback((req: InteractionRequest) => {
 		void Promise.resolve(req.trigger?.run()).catch((e) =>
@@ -281,9 +303,14 @@ function ConformanceRunner() {
 	// Drive non-gesture steps over postMessage. Gesture-gated triggers (open-link,
 	// download, message, sampling) must be REAL clicks — the driver clicks the
 	// trigger button directly; "trigger" here is only a same-origin fallback.
-	useDriveListener((action) => {
+	useDriveListener((action, id) => {
 		if (action === "run") {
 			if (!running) void run();
+		} else if (action === "run-auto") {
+			if (!running) void runTests((d) => !d.manual, { reset: true, fullscreen: false });
+		} else if (action === "run-test") {
+			if (!running && id)
+				void runTests((d) => d.id === id, { reset: false, fullscreen: false });
 		} else if (action === "trigger") {
 			if (interaction?.req.trigger) runTrigger(interaction.req);
 		} else if (action === "yes") {

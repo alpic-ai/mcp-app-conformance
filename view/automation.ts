@@ -16,7 +16,14 @@
  */
 import { useEffect, useRef } from "react";
 
-export type DriveAction = "run" | "trigger" | "yes" | "no" | "skip";
+export type DriveAction =
+  | "run" // full run (auto + manual) — human "Run all"
+  | "run-auto" // run only the automatic (non-manual) tests
+  | "run-test" // run a single test by id (message carries `id`)
+  | "trigger"
+  | "yes"
+  | "no"
+  | "skip";
 
 const DRIVE_MESSAGE = "conformance:drive";
 const STATE_MESSAGE = "conformance:state";
@@ -29,14 +36,14 @@ declare global {
 }
 
 /** Dispatch inbound `conformance:drive` messages to `onAction` (always the latest). */
-export function useDriveListener(onAction: (action: DriveAction) => void): void {
+export function useDriveListener(onAction: (action: DriveAction, id?: string) => void): void {
   const onActionRef = useRef(onAction);
   onActionRef.current = onAction;
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { type?: string; action?: string } | null;
+      const data = event.data as { type?: string; action?: string; id?: string } | null;
       if (data?.type === DRIVE_MESSAGE && data.action) {
-        onActionRef.current(data.action as DriveAction);
+        onActionRef.current(data.action as DriveAction, data.id);
       }
     };
     window.addEventListener("message", onMessage);

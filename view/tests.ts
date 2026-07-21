@@ -23,23 +23,29 @@ import { mcp_test, type TestContext } from "./testharness";
 // Registering early keeps `conformance_ping` available for the whole session.
 let resolveAppToolCall: (() => void) | null = null;
 let appToolRegistered = false;
+let appToolRegisterError: string | null = null;
 
 export function ensureAppToolRegistered(app: App): void {
-	if (appToolRegistered) return;
-	appToolRegistered = true;
-	app.registerTool(
-		"conformance_ping",
-		{
-			title: "Conformance Ping",
-			description: "Conformance test tool — returns 'pong'.",
-		},
-		() => {
-			console.log("[conformance] conformance_ping CALLED by host");
-			resolveAppToolCall?.();
-			return { content: [{ type: "text", text: "pong" }] };
-		},
-	);
-	void app.sendToolListChanged().catch(() => {});
+	if (appToolRegistered || appToolRegisterError) return;
+	try {
+		app.registerTool(
+			"conformance_ping",
+			{
+				title: "Conformance Ping",
+				description: "Conformance test tool — returns 'pong'.",
+			},
+			() => {
+				console.log("[conformance] conformance_ping CALLED by host");
+				resolveAppToolCall?.();
+				return { content: [{ type: "text", text: "pong" }] };
+			},
+		);
+		void app.sendToolListChanged().catch(() => {});
+		appToolRegistered = true;
+	} catch (e) {
+		appToolRegisterError = e instanceof Error ? e.message : String(e);
+		console.error("[conformance] app tool registration failed:", appToolRegisterError);
+	}
 }
 
 function nextAppToolCall(): Promise<void> {
@@ -980,9 +986,14 @@ mcp_test(
 	"app-tools/call",
 	"host calls an app-registered tool (human-verified)",
 	async (t: TestContext) => {
-		// conformance_ping is registered once at connect (ensureAppToolRegistered);
-		// here we just wait for the host to call it after we ask the agent to.
+		// conformance_ping is registered once at connect (ensureAppToolRegistered).
+		// If registration itself can't occur, fail immediately — there's nothing to
+		// wait for (no point asking the agent to call a tool that never registered).
 		ensureAppToolRegistered(t.app);
+		t.assert(
+			appToolRegistered,
+			`app tool registration failed: ${appToolRegisterError ?? "unknown error"}`,
+		);
 		const called = nextAppToolCall();
 		await t.awaitUserAction(
 			"Click “Ask the agent” — the app asks the agent to call conformance_ping. I'll detect the call automatically.",
