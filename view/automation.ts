@@ -32,6 +32,9 @@ const HEARTBEAT_MS = 1500;
 declare global {
   interface Window {
     __conformance?: Record<string, unknown>;
+    /** Direct drive entry point for external drivers — more reliable than
+     * postMessage into a sandboxed, nested, cross-origin iframe. */
+    __conformanceDrive?: (action: DriveAction, id?: string) => void;
   }
 }
 
@@ -47,7 +50,11 @@ export function useDriveListener(onAction: (action: DriveAction, id?: string) =>
       }
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    window.__conformanceDrive = (action, id) => onActionRef.current(action, id);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      delete window.__conformanceDrive;
+    };
   }, []);
 }
 
