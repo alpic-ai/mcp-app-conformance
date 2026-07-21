@@ -20,7 +20,19 @@ import {
 	type SubtestResult,
 } from "./testharness";
 import { ensureAppToolRegistered } from "./tests";
+import catalogue from "../notte/catalogue.json";
 import "./style.css";
+
+// Per-test spec reference (which spec + line) from the catalogue — used in the
+// test-detail modal to link to the exact requirement on GitHub.
+const CATALOGUE: Record<string, { spec: string; line: number }> = Object.fromEntries(
+	(catalogue as { id: string; spec: string; line: number }[]).map((e) => [
+		e.id,
+		{ spec: e.spec, line: e.line },
+	]),
+);
+const specUrl = (spec: string, line: number) =>
+	`https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/${spec}/apps.mdx?plain=1#L${line}`;
 
 type Row = Pick<
 	SubtestResult,
@@ -114,6 +126,8 @@ function JsonPanel({
 function ConformanceRunner() {
 	const signalsRef = useRef<HostSignals | null>(null);
 	const dialogRef = useRef<HTMLDialogElement>(null);
+	const detailRef = useRef<HTMLDialogElement>(null);
+	const [detail, setDetail] = useState<Row | null>(null);
 	const [rows, setRows] = useState<Row[]>(freshRows);
 	const [runningId, setRunningId] = useState<string | null>(null);
 	const [running, setRunning] = useState(false);
@@ -423,9 +437,17 @@ function ConformanceRunner() {
 											<span
 												className={`dot ${t.id === runningId ? "dot-running" : `dot-${t.status.toLowerCase()}`}`}
 											/>
-											<span className="tname mono">
+											<button
+												type="button"
+												className="tname mono"
+												title="Show test details"
+												onClick={() => {
+													setDetail(t);
+													detailRef.current?.showModal();
+												}}
+											>
 												{t.id.slice(g.name.length + 1)}
-											</span>
+											</button>
 											<span className={statusClass(t.status)}>
 												{t.id === runningId ? "…" : t.status}
 											</span>
@@ -546,6 +568,63 @@ function ConformanceRunner() {
 				</div>
 				<JsonPanel label="Host capabilities" value={inspect.hostCapabilities} />
 				<JsonPanel label="Host context" value={inspect.hostContext} />
+			</dialog>
+
+			<dialog ref={detailRef} className="values-dialog">
+				{detail && (
+					<>
+						<div className="values-head">
+							<h2 className="mono">{detail.id}</h2>
+							<button
+								type="button"
+								className="dialog-close"
+								onClick={() => detailRef.current?.close()}
+							>
+								×
+							</button>
+						</div>
+						<div className="detail-row">
+							<span className="detail-label">Status</span>
+							<span className={statusClass(detail.status)}>{detail.status}</span>
+						</div>
+						<div className="detail-row">
+							<span className="detail-label">Clause</span>
+							<span className="mono">
+								{detail.clause}
+								{detail.vantage ? ` · ${detail.vantage}` : ""}
+								{detail.manual ? " · manual" : ""}
+							</span>
+						</div>
+						{detail.message && (
+							<div className="detail-row">
+								<span className="detail-label">Message</span>
+								<span className="detail-msg">{detail.message}</span>
+							</div>
+						)}
+						{CATALOGUE[detail.id] && (
+							<div className="detail-row">
+								<span className="detail-label">Spec</span>
+								<span>
+									{CATALOGUE[detail.id].spec === "draft"
+										? "draft (unstable)"
+										: CATALOGUE[detail.id].spec}{" "}
+									·{" "}
+									<a
+										href={specUrl(
+											CATALOGUE[detail.id].spec,
+											CATALOGUE[detail.id].line,
+										)}
+										target="_blank"
+										rel="noopener"
+									>
+										L{CATALOGUE[detail.id].line} on GitHub ↗
+									</a>
+								</span>
+							</div>
+						)}
+						{detail.caveat && <p className="detail-caveat">⚠️ {detail.caveat}</p>}
+					</>
+				)}
 			</dialog>
 		</main>
 	);

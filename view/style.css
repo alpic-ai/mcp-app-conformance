@@ -101,7 +101,13 @@ tr.running { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .group-tests { list-style: none; margin: 0; padding: 4px 0; border-top: 1px solid var(--line); }
 .group-tests li { display: flex; align-items: center; gap: 8px; padding: 5px 12px; }
 .group-tests li.running { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.tname { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tname { flex: 1; min-width: 0; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; background: transparent; border: none; padding: 0; cursor: pointer; color: var(--ink); font-family: var(--mono); }
+.tname:hover { color: var(--accent); text-decoration: underline; }
+.detail-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+.detail-label { width: 72px; flex-shrink: 0; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.detail-msg { color: var(--fail); font-family: var(--mono); font-size: 12px; word-break: break-word; }
+.detail-caveat { color: var(--timeout); font-size: 12px; margin: 12px 0 0; line-height: 1.5; }
+.values-dialog a { color: var(--accent); }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--notrun); }
 .dot-pass { background: var(--pass); }
 .dot-fail, .dot-timeout { background: var(--fail); }
