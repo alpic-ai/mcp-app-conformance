@@ -2,3 +2,10 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# conformance driver (local)
+notte/.profiles/
+notte/__pycache__/
+
+.claude
+.conductor
