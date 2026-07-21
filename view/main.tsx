@@ -338,6 +338,18 @@ function ConformanceRunner() {
 					)}
 					<button
 						type="button"
+						className="reset-btn"
+						data-testid="reset-inline"
+						title="Revert the display mode to inline. Needs a real click on hosts (e.g. ChatGPT) that gate display-mode changes on a user gesture."
+						onClick={() => {
+							void app?.requestDisplayMode({ mode: "inline" }).catch(() => {});
+						}}
+						disabled={!app}
+					>
+						Reset to inline
+					</button>
+					<button
+						type="button"
 						className="run-btn"
 						data-testid="run"
 						onClick={run}

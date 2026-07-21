@@ -32,6 +32,9 @@ h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .head-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .run-btn { font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: #fff; background: var(--accent); border: 1px solid var(--accent); }
 .run-btn:disabled { opacity: 0.5; cursor: default; }
+.reset-btn { font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 8px; cursor: pointer; color: var(--ink); background: transparent; border: 1px solid var(--line); }
+.reset-btn:disabled { opacity: 0.5; cursor: default; }
+.reset-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .grid { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
