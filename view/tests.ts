@@ -99,11 +99,7 @@ mcp_test(
 	(t: TestContext) => {
 		const vars = t.app.getHostContext()?.styles?.variables;
 		const keys = vars ? Object.keys(vars) : [];
-		t.info(
-			keys.length
-				? `host provided ${keys.length} style variable(s)`
-				: "host provided no style variables",
-		);
+		t.assert(keys.length > 0, "host provided no style variables");
 	},
 	{
 		clause: "MAY",
@@ -122,17 +118,16 @@ mcp_test(
 		const values = Object.values(
 			t.app.getHostContext()?.styles?.variables ?? {},
 		);
-		if (!values.length) {
-			t.info("no style variables provided to inspect");
-			return;
-		}
+		t.assert(
+			values.length > 0,
+			"host provided no style variables to check for light-dark()",
+		);
 		const usesLightDark = values.some(
 			(v) => typeof v === "string" && v.includes("light-dark("),
 		);
-		t.info(
-			usesLightDark
-				? "host uses light-dark() for theme-aware values"
-				: "host provides variables but none use light-dark()",
+		t.assert(
+			usesLightDark,
+			"host provides style variables but none use light-dark()",
 		);
 	},
 	{
@@ -149,11 +144,7 @@ mcp_test(
 	"host provides custom fonts (styles.css.fonts)",
 	(t: TestContext) => {
 		const fonts = t.app.getHostContext()?.styles?.css?.fonts;
-		t.info(
-			fonts
-				? `host provided custom font CSS (${fonts.length} chars)`
-				: "host provided no custom fonts",
-		);
+		t.assert(!!fonts, "host provided no custom fonts");
 	},
 	{
 		clause: "MAY",
@@ -352,32 +343,6 @@ mcp_test(
 	},
 );
 
-// lifecycle — streaming tool-input-partial is OPTIONAL (MAY), so this reports a
-// capability signal (INFO) rather than pass/fail: does the host stream or not?
-mcp_test(
-	"lifecycle/tool-input-partial",
-	"host streams tool-input-partial (optional)",
-	async (t: TestContext) => {
-		await Promise.race([
-			t.signals.toolInput,
-			new Promise((r) => setTimeout(r, 1500)),
-		]);
-		const n = t.signals.partials.count;
-		t.info(
-			n > 0
-				? `streams tool-input-partial — ${n} observed`
-				: "does not stream tool-input-partial",
-		);
-	},
-	{
-		clause: "MAY",
-		vantage: "in-view",
-		timeoutMs: 4000,
-		caveat:
-			"MAY — reported as a capability signal (INFO), not pass/fail. Partials only appear when the agent streams tool arguments, which our launcher doesn't induce.",
-	},
-);
-
 // The ext-apps SDK strictly validates the host's requestDisplayMode RESULT
 // against the spec schema (`mode` ∈ inline|fullscreen|pip, required). A
 // non-conforming host (observed on Cursor) replies without a valid `mode`,
@@ -533,9 +498,8 @@ mcp_test(
 			| { height?: number }
 			| undefined;
 		if (dims && typeof dims.height === "number") {
-			t.info(
-				`host pins a fixed height (${dims.height}px) — flexible-mode resize not applicable`,
-			);
+			// Host pinned a fixed height — flexible-mode resize doesn't apply, so
+			// there's nothing to fail here (valid host choice); pass and return.
 			return;
 		}
 		const before = window.innerHeight;
@@ -580,12 +544,10 @@ mcp_test(
 	"capabilities/server-passthrough",
 	"host forwards resources/list from the view to the server",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.serverResources) {
-			t.info(
-				"host does not advertise serverResources — resource passthrough not supported",
-			);
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.serverResources,
+			"host does not advertise serverResources — resource passthrough not supported",
+		);
 		const res = await t.app.listServerResources();
 		const uris = (res.resources ?? []).map((r) => r.uri);
 		t.assert(
@@ -673,10 +635,10 @@ mcp_test(
 	"messages/add-to-conversation",
 	"ui/message is added to the conversation (human-verified)",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.message) {
-			t.info("host does not advertise ui/message support");
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.message,
+			"host does not advertise ui/message support",
+		);
 		const added = await t.confirmWithUser(
 			"Click “Send message” — a message from this app should appear in your conversation. Did it?",
 			{
@@ -708,48 +670,6 @@ mcp_test(
 	},
 );
 
-// messages — the host MAY ask for consent before adding a ui/message. Optional,
-// so this reports a capability signal (INFO) from the operator's observation.
-mcp_test(
-	"messages/consent",
-	"host may request consent before adding a ui/message",
-	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.message) {
-			t.info("host does not advertise ui/message support");
-			return;
-		}
-		const consented = await t.confirmWithUser(
-			"Click “Send message”. Your host MAY show a consent prompt first — did one appear?",
-			{
-				label: "💬 Send message",
-				run: () =>
-					t.app.sendMessage({
-						role: "user",
-						content: [
-							{
-								type: "text",
-								text: "Conformance check: consent-prompt probe.",
-							},
-						],
-					}),
-			},
-		);
-		t.info(
-			consented
-				? "host showed a consent prompt"
-				: "host added the message without a consent prompt",
-		);
-	},
-	{
-		clause: "MAY",
-		vantage: "host",
-		manual: true,
-		timeoutMs: 0,
-		caveat:
-			"MAY — reported as an INFO signal: consent is optional, so neither answer fails. The operator reports whether a prompt appeared.",
-	},
-);
-
 // visibility — app-only tools (visibility lacking "model") must be hidden from
 // the agent's tool list. We make the app ask the agent to enumerate its tools
 // (via ui/message), then the operator confirms the app-only tool is absent.
@@ -757,10 +677,10 @@ mcp_test(
 	"visibility/app-tool-hidden",
 	"host hides app-only tools from the agent (human-verified)",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.message) {
-			t.info("host does not advertise ui/message support");
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.message,
+			"host does not advertise ui/message support",
+		);
 		const hidden = await t.confirmWithUser(
 			"Click “Ask the agent”, then read its reply. The app-only tool `conformance_probe` MUST NOT appear in the agent's tool list — is it correctly absent?",
 			{
@@ -828,10 +748,10 @@ mcp_test(
 	"model-context/provide-future-turns",
 	"ui/update-model-context reaches the model next turn (human-verified)",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.updateModelContext) {
-			t.info("host does not advertise ui/update-model-context support");
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.updateModelContext,
+			"host does not advertise ui/update-model-context support",
+		);
 		const recalled = await t.confirmWithUser(
 			"Click “Seed + ask”. The app sets a secret code via update-model-context, then asks the agent for it. Did the agent answer with “MCP-APP-7421”?",
 			{
@@ -882,8 +802,9 @@ mcp_test(
 		const caps = t.app.getHostCapabilities();
 		const fmt = (m?: McpUiSupportedContentBlockModalities) =>
 			m ? Object.keys(m).join(", ") || "(present, empty)" : "not declared";
-		t.info(
-			`message: ${fmt(caps?.message)} · updateModelContext: ${fmt(caps?.updateModelContext)}`,
+		t.assert(
+			Boolean(caps?.message || caps?.updateModelContext),
+			`host declares no content-block modalities (message: ${fmt(caps?.message)} · updateModelContext: ${fmt(caps?.updateModelContext)})`,
 		);
 	},
 	{
@@ -900,10 +821,10 @@ mcp_test(
 	"sampling/create-message",
 	"sampling/createMessage returns a completion (human-verified)",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.sampling) {
-			t.info("host does not advertise the sampling capability");
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.sampling,
+			"host does not advertise the sampling capability",
+		);
 		const worked = await t.confirmWithUser(
 			"Click “Ask model”. The app requests a one-line completion via sampling/createMessage — the host may ask you to approve it. Did the model reply?",
 			{
@@ -944,10 +865,10 @@ mcp_test(
 	"download-file/confirm",
 	"ui/download-file downloads a file (human-verified)",
 	async (t: TestContext) => {
-		if (!t.app.getHostCapabilities()?.downloadFile) {
-			t.info("host does not advertise the downloadFile capability");
-			return;
-		}
+		t.assert(
+			!!t.app.getHostCapabilities()?.downloadFile,
+			"host does not advertise the downloadFile capability",
+		);
 		const downloaded = await t.confirmWithUser(
 			"Click “Download”. The host should download a small text file (ideally after a confirmation dialog). Did it download?",
 			{
