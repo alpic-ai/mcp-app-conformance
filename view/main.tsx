@@ -113,6 +113,7 @@ function JsonPanel({
 
 function ConformanceRunner() {
 	const signalsRef = useRef<HostSignals | null>(null);
+	const dialogRef = useRef<HTMLDialogElement>(null);
 	const [rows, setRows] = useState<Row[]>(freshRows);
 	const [runningId, setRunningId] = useState<string | null>(null);
 	const [running, setRunning] = useState(false);
@@ -132,17 +133,10 @@ function ConformanceRunner() {
 		},
 		autoResize: true,
 		onAppCreated: (created) => {
+			// captureHostSignals wires tool-input/result promises the lifecycle tests
+			// await; we no longer surface those in the UI.
 			signalsRef.current = captureHostSignals(created);
 			created.onerror = (e) => console.error("[conformance] app error:", e);
-			// Surface the raw values the host passes, for auditing (see Inspector panel).
-			signalsRef.current.toolInput.then(
-				(v) => setInspect((p) => ({ ...p, toolInput: v })),
-				() => {},
-			);
-			signalsRef.current.toolResult.then(
-				(v) => setInspect((p) => ({ ...p, toolResult: v })),
-				() => {},
-			);
 		},
 	});
 
@@ -252,15 +246,28 @@ function ConformanceRunner() {
 	}, []);
 
 	const host = app?.getHostVersion();
-	// INFO rows are capability signals, not pass/fail — exclude them from the score.
 	const pass = rows.filter((r) => r.status === "PASS").length;
 	const failed = rows.filter(
 		(r) => r.status === "FAIL" || r.status === "TIMEOUT",
 	).length;
-	const info = rows.filter((r) => r.status === "INFO").length;
-	const gradeable = rows.length - info;
 	const done = rows.filter((r) => r.status !== "NOTRUN").length;
-	const summaryText = `${pass}/${gradeable} passing${info ? ` · ${info} info` : ""}`;
+	const summaryText = `${pass}/${rows.length} passing`;
+
+	// Group tests by their area prefix (security/, display/, …) for the sidebar.
+	const groups: { name: string; tests: Row[] }[] = [];
+	const gmap = new Map<string, { name: string; tests: Row[] }>();
+	for (const r of rows) {
+		const name = r.id.split("/")[0];
+		let g = gmap.get(name);
+		if (!g) {
+			g = { name, tests: [] };
+			gmap.set(name, g);
+			groups.push(g);
+		}
+		g.tests.push(r);
+	}
+	const currentRow = runningId ? rows.find((r) => r.id === runningId) : undefined;
+
 	const hostLabel = error
 		? "error"
 		: app
@@ -339,6 +346,16 @@ function ConformanceRunner() {
 					<button
 						type="button"
 						className="reset-btn"
+						data-testid="host-values"
+						title="Show the capabilities and context the host provided"
+						onClick={() => dialogRef.current?.showModal()}
+						disabled={!app}
+					>
+						Host values
+					</button>
+					<button
+						type="button"
+						className="reset-btn"
 						data-testid="reset-inline"
 						title="Revert the display mode to inline. Needs a real click on hosts (e.g. ChatGPT) that gate display-mode changes on a user gesture."
 						onClick={() => {
@@ -382,115 +399,154 @@ function ConformanceRunner() {
 
 			{error && <p className="msg">connection error: {error.message}</p>}
 
-			<table className="grid">
-				<thead>
-					<tr>
-						<th>ID</th>
-						<th>Test</th>
-						<th>Clause</th>
-						<th>Status</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((r) => (
-						<tr
-							key={r.id}
-							className={r.id === runningId ? "running" : undefined}
-						>
-							<td className="mono">{r.id}</td>
-							<td>
-								{r.name}
-								{r.message && <div className="msg">{r.message}</div>}
-								{r.caveat && <div className="caveat">⚠️ {r.caveat}</div>}
-							</td>
-							<td className="mono">
-								{r.clause}
-								{r.vantage && <span className="vantage">{r.vantage}</span>}
-								{r.manual && <span className="vantage">manual</span>}
-							</td>
-							<td>
-								{r.id === runningId ? (
-									<span className="st st-running">
-										<span className="spinner" />
-										running…
+			<div className="layout">
+				<aside className="sidebar">
+					{groups.map((g) => {
+						const gp = g.tests.filter((t) => t.status === "PASS").length;
+						const gf = g.tests.filter(
+							(t) => t.status === "FAIL" || t.status === "TIMEOUT",
+						).length;
+						return (
+							<details className="group" key={g.name}>
+								<summary>
+									<span className="group-name">{g.name}</span>
+									<span className={`group-count${gf ? " has-fail" : ""}`}>
+										{gp}/{g.tests.length}
 									</span>
-								) : (
-									<span className={statusClass(r.status)}>{r.status}</span>
-								)}
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+								</summary>
+								<ul className="group-tests">
+									{g.tests.map((t) => (
+										<li
+											key={t.id}
+											className={t.id === runningId ? "running" : undefined}
+										>
+											<span
+												className={`dot ${t.id === runningId ? "dot-running" : `dot-${t.status.toLowerCase()}`}`}
+											/>
+											<span className="tname mono">
+												{t.id.slice(g.name.length + 1)}
+											</span>
+											<span className={statusClass(t.status)}>
+												{t.id === runningId ? "…" : t.status}
+											</span>
+										</li>
+									))}
+								</ul>
+							</details>
+						);
+					})}
+				</aside>
 
-			<section className="inspector">
-				<h2 className="inspector-title">
-					Inspector — values provided by the host
-				</h2>
-				<JsonPanel
-					label="Host capabilities"
-					value={inspect.hostCapabilities}
-					open
-				/>
-				<JsonPanel label="Host context" value={inspect.hostContext} open />
-				<JsonPanel label="Tool input" value={inspect.toolInput} />
-				<JsonPanel label="Tool result" value={inspect.toolResult} />
-			</section>
-
-			{interaction && (
-				<div className="interaction-scrim">
-					<div className="interaction-card">
-						<span className="interaction-tag">action needed</span>
-						<p className="interaction-prompt">{interaction.req.prompt}</p>
-						<div className="interaction-actions">
-							{interaction.req.trigger && (
-								<button
-									type="button"
-									className="trigger-btn"
-									data-testid="trigger"
-									onClick={() => runTrigger(interaction.req)}
-								>
-									{interaction.req.trigger.label}
-								</button>
-							)}
-							{interaction.req.kind === "await" ? (
-								<>
-									<span className="awaiting">
-										<span className="spinner" /> detecting…
-									</span>
+				<section className="current">
+					{interaction ? (
+						<div className="current-card">
+							<div className="current-id mono">
+								{currentRow?.id ?? runningId}
+							</div>
+							<div className="current-meta">
+								{currentRow?.clause}
+								{currentRow?.vantage ? ` · ${currentRow.vantage}` : ""}
+								{currentRow?.manual ? " · manual" : ""}
+							</div>
+							<span className="interaction-tag">action needed</span>
+							<p className="interaction-prompt">{interaction.req.prompt}</p>
+							<div className="interaction-actions">
+								{interaction.req.trigger && (
 									<button
 										type="button"
-										className="verdict-btn no"
-										data-testid="verdict-skip"
-										onClick={() => interaction.resolve(false)}
+										className="trigger-btn"
+										data-testid="trigger"
+										onClick={() => runTrigger(interaction.req)}
 									>
-										Skip
+										{interaction.req.trigger.label}
 									</button>
+								)}
+								{interaction.req.kind === "await" ? (
+									<>
+										<span className="awaiting">
+											<span className="spinner" /> detecting…
+										</span>
+										<button
+											type="button"
+											className="verdict-btn no"
+											data-testid="verdict-skip"
+											onClick={() => interaction.resolve(false)}
+										>
+											Skip
+										</button>
+									</>
+								) : (
+									<>
+										<button
+											type="button"
+											className="verdict-btn ok"
+											data-testid="verdict-yes"
+											onClick={() => interaction.resolve(true)}
+										>
+											✅ It worked
+										</button>
+										<button
+											type="button"
+											className="verdict-btn no"
+											data-testid="verdict-no"
+											onClick={() => interaction.resolve(false)}
+										>
+											❌ It didn’t
+										</button>
+									</>
+								)}
+							</div>
+						</div>
+					) : currentRow ? (
+						<div className="current-card">
+							<div className="current-id mono">{currentRow.id}</div>
+							<div className="current-meta">
+								{currentRow.clause}
+								{currentRow.vantage ? ` · ${currentRow.vantage}` : ""}
+								{currentRow.manual ? " · manual" : ""}
+							</div>
+							<div className="current-status">
+								<span className="spinner" /> running…
+							</div>
+							{currentRow.message && <p className="msg">{currentRow.message}</p>}
+						</div>
+					) : (
+						<div className="current-card idle">
+							{ran ? (
+								<>
+									<div
+										className={`big-summary ${failed === 0 ? "ok" : "bad"}`}
+									>
+										{summaryText}
+									</div>
+									<p>Run complete. Toggle a group on the left to review each test.</p>
 								</>
 							) : (
-								<>
-									<button
-										type="button"
-										className="verdict-btn ok"
-										data-testid="verdict-yes"
-										onClick={() => interaction.resolve(true)}
-									>
-										✅ It worked
-									</button>
-									<button
-										type="button"
-										className="verdict-btn no"
-										data-testid="verdict-no"
-										onClick={() => interaction.resolve(false)}
-									>
-										❌ It didn’t
-									</button>
-								</>
+								<p>
+									Click <strong>Run conformance tests</strong> to start. Tests run
+									one at a time — the current test shows here, and results fill in
+									the groups on the left.
+								</p>
 							)}
 						</div>
-					</div>
+					)}
+				</section>
+			</div>
+
+			<dialog ref={dialogRef} className="values-dialog">
+				<div className="values-head">
+					<h2>Values provided by the host</h2>
+					<button
+						type="button"
+						className="dialog-close"
+						onClick={() => dialogRef.current?.close()}
+					>
+						×
+					</button>
 				</div>
-			)}
+				<JsonPanel label="Host capabilities" value={inspect.hostCapabilities} />
+				<JsonPanel label="Host context" value={inspect.hostContext} />
+			</dialog>
 		</main>
 	);
 }
