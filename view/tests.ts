@@ -239,22 +239,30 @@ mcp_test(
 	"security/sandbox-distinct-origin",
 	"host and sandbox have different origins",
 	(t: TestContext) => {
+		// The View is loaded same-origin INSIDE the Sandbox proxy (window.parent),
+		// so the spec's Host ≠ Sandbox boundary (§Sandbox proxy) is between the
+		// Sandbox/View and window.top (the Host). Reading window.parent would NOT
+		// throw (same origin); reading the host's location must throw cross-origin.
+		t.assert(
+			window.top !== window.self,
+			"not embedded in a host frame (window.top === self)",
+		);
 		let threw = false;
 		try {
-			void window.parent.location.href;
+			void window.top?.location.href;
 		} catch {
 			threw = true;
 		}
 		t.assert(
 			threw,
-			"reading window.parent.location must throw (cross-origin sandbox proxy)",
+			"reading window.top.location (the host) must throw — host and sandbox must have different origins",
 		);
 	},
 	{
 		clause: "MUST",
 		vantage: "in-view",
 		caveat:
-			"Inferred from a cross-origin SecurityError. If the page were opened top-level (no host), parent === self and this would FAIL — which is correct (it's not in a host).",
+			"Host ≠ Sandbox. The View runs same-origin inside the Sandbox, so this checks window.top (the host), not window.parent (the sandbox). Opened top-level (no host), window.top === self and this FAILs — correct, it's not in a host.",
 	},
 );
 
