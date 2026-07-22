@@ -50,14 +50,37 @@ export abstract class BrowserHost implements Host {
 	}
 
 	async confirmDialog(
-		dialog: "open-link" | "download" | "sampling",
+		dialog: "download" | "sampling",
 	): Promise<CapabilityResult> {
-		const label = {
-			"open-link": "Open link",
-			download: "Download",
-			sampling: "Allow",
-		}[dialog];
+		const label = { download: "Download", sampling: "Allow" }[dialog];
 		return { ok: await this.clickTopPageButton(label) };
+	}
+
+	// Success is the specific link OPENING, not a dialog: ChatGPT opens directly
+	// with no prompt, Claude first shows an "Open link" consent. app.openLink
+	// already fired (clickTrigger) from inside the iframe, so the tab may already
+	// be open; if not, accept a consent dialog and wait for it. We match THIS url
+	// (not just any new tab) so an unrelated tab can't pass. resetBetweenTests
+	// closes it afterwards.
+	async checkLinkOpen(url: string): Promise<CapabilityResult> {
+		const target = url.replace(/\/+$/, "");
+		const isTargetTab = () =>
+			this.context
+				.pages()
+				.some(
+					(p) =>
+						p !== this.page &&
+						!p.isClosed() &&
+						p.url().replace(/\/+$/, "").startsWith(target),
+				);
+		if (isTargetTab()) return { ok: true };
+		await this.clickTopPageButton("Open link", 8);
+		const deadline = Date.now() + 10_000;
+		while (Date.now() < deadline) {
+			if (isTargetTab()) return { ok: true };
+			await sleep(500);
+		}
+		return { ok: false };
 	}
 
 	async conversationContains(

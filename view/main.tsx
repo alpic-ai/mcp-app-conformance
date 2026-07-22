@@ -16,9 +16,9 @@
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
+import catalogue from "../catalogue.json";
 import type { CapabilityRequest, Status } from "../shared/protocol";
 import { CHANNEL } from "../shared/protocol";
-import catalogue from "../catalogue.json";
 import { installChannel } from "./harness/channel";
 import {
 	captureHostSignals,
@@ -80,6 +80,8 @@ const requestLabel = (req: CapabilityRequest): string => {
 			return "Click the trigger button, then report the outcome.";
 		case "confirmDialog":
 			return `Confirm the host's “${req.dialog}” dialog, then report the outcome.`;
+		case "checkLinkOpen":
+			return `Open the link — a tab at ${req.url} should open.`;
 		case "conversationContains":
 			return `Waiting for “${req.marker}” to appear in the conversation.`;
 		case "toggleTheme":
@@ -406,7 +408,9 @@ function ConformanceRunner() {
 							<div className="current-status">
 								<span className="spinner" /> running…
 							</div>
-							{currentRow.message && <p className="msg">{currentRow.message}</p>}
+							{currentRow.message && (
+								<p className="msg">{currentRow.message}</p>
+							)}
 						</div>
 					) : (
 						<div className="current-card idle">
@@ -462,7 +466,9 @@ function ConformanceRunner() {
 						</div>
 						<div className="detail-row">
 							<span className="detail-label">Status</span>
-							<span className={statusClass(detail.status)}>{detail.status}</span>
+							<span className={statusClass(detail.status)}>
+								{detail.status}
+							</span>
 						</div>
 						<div className="detail-row">
 							<span className="detail-label">Clause</span>
@@ -499,7 +505,9 @@ function ConformanceRunner() {
 								</span>
 							</div>
 						)}
-						{detail.caveat && <p className="detail-caveat">⚠️ {detail.caveat}</p>}
+						{detail.caveat && (
+							<p className="detail-caveat">⚠️ {detail.caveat}</p>
+						)}
 					</>
 				)}
 			</dialog>

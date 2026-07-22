@@ -45,7 +45,10 @@ export type CapabilityRequest =
   // its composer instead of sending directly (Claude).
   | { kind: "clickTrigger"; commitDraftedMessage?: boolean }
   // Accept a host-native permission dialog surfaced after the trigger.
-  | { kind: "confirmDialog"; dialog: "open-link" | "download" | "sampling" }
+  | { kind: "confirmDialog"; dialog: "download" | "sampling" }
+  // Verify a ui/open-link opened THIS url (a new tab at it), accepting a consent
+  // dialog if the host shows one — some hosts open directly with no dialog.
+  | { kind: "checkLinkOpen"; url: string }
   // Poll the host conversation for a marker (negated by the test when the test
   // needs the marker to be ABSENT).
   | { kind: "conversationContains"; marker: string; timeoutMs: number }
