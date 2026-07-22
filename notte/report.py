@@ -134,6 +134,7 @@ def main() -> int:
   h1 {{ font-size:18px; margin:0 0 2px; }}
   h2 {{ font-size:15px; margin:28px 0 8px; }}
   .gen {{ color:var(--muted); font-size:12px; margin-bottom:6px; }}
+  .gen a {{ color:var(--accent); text-decoration:none; }} .gen a:hover {{ text-decoration:underline; }}
   .note {{ color:var(--muted); font-size:11px; margin-bottom:16px; font-style:italic; }}
   table {{ border-collapse:separate; border-spacing:0; font-size:13px; }}
   th, td {{ border-bottom:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; }}
@@ -169,7 +170,7 @@ def main() -> int:
   #val-body {{ background:#f6f8fa; padding:12px; border-radius:6px; overflow:auto; font-size:11px; font-family:ui-monospace,Menlo,monospace; max-height:62vh; white-space:pre; margin:0; }}
 </style></head><body>
 <h1>MCP Apps Conformance — results</h1>
-<div class="gen">Generated {generated} · hosts: {hostlist}</div>
+<div class="gen">Generated {generated} · hosts: {hostlist} · <a href="how-it-works.html">How it works ↗</a></div>
 <div class="note">Single run per host, some manual verdicts operator-assisted. Grouped by RFC-2119 clause — a FAIL under SHOULD/MAY means the optional behavior isn't supported, not a spec violation.</div>
 <div class="legend"><span class="pass">PASS</span><span class="fail">FAIL / TIMEOUT</span><span class="notrun">not run</span>&nbsp;hover a cell for the message / driver action · click a test's spec link for the exact line</div>
 <table><thead><tr><th class="corner">Test</th>{head_cells}</tr></thead><tbody>{body}</tbody></table>
