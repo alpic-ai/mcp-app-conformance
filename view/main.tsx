@@ -6,75 +6,89 @@
  * changes under transient user activation, so a click is required for those
  * tests to behave. `useApp`'s `onAppCreated` lets us capture host→view
  * notifications (tool-input/tool-result) BEFORE connect.
+ *
+ * The UI renders from the suite engine's state (registry.ts) and the same engine
+ * is exposed to an external Runner as `window.__mcpConformance` (channel.ts).
+ * A human drives it here: Run starts the suite; when a test parks a capability
+ * request, the action card resolves it ("It worked" / "It didn't" / Skip), and
+ * gesture-gated triggers fire from a real click on the trigger button.
  */
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
-import { useDriveListener, useStateBroadcast } from "./automation";
+import type { CapabilityRequest, Status } from "../shared/protocol";
+import { CHANNEL } from "../shared/protocol";
+import catalogue from "../catalogue.json";
+import { installChannel } from "./harness/channel";
 import {
 	captureHostSignals,
+	engine,
 	getRegistry,
 	type HostSignals,
-	type InteractionRequest,
-	runAll,
-	type SubtestResult,
-} from "./testharness";
+} from "./harness/registry";
 import { ensureAppToolRegistered } from "./tests";
-import catalogue from "../notte/catalogue.json";
 import "./style.css";
 
 // Per-test spec reference (which spec + line) from the catalogue — used in the
 // test-detail modal to link to the exact requirement on GitHub.
-const CATALOGUE: Record<string, { spec: string; line: number }> = Object.fromEntries(
-	(catalogue as { id: string; spec: string; line: number }[]).map((e) => [
-		e.id,
-		{ spec: e.spec, line: e.line },
-	]),
-);
+const CATALOGUE: Record<string, { spec: string; line: number }> =
+	Object.fromEntries(
+		(catalogue as { id: string; spec: string; line: number }[]).map((e) => [
+			e.id,
+			{ spec: e.spec, line: e.line },
+		]),
+	);
 const specUrl = (spec: string, line: number) =>
 	`https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/${spec}/apps.mdx?plain=1#L${line}`;
 
-type Row = Pick<
-	SubtestResult,
-	| "id"
-	| "name"
-	| "status"
-	| "clause"
-	| "vantage"
-	| "manual"
-	| "caveat"
-	| "message"
-	| "value"
->;
-
-const freshRows = (): Row[] =>
-	getRegistry().map((d) => ({
-		id: d.id,
-		name: d.name,
-		status: "NOTRUN",
-		clause: d.clause,
-		vantage: d.vantage,
-		manual: d.manual,
-		caveat: d.caveat,
-	}));
+type Row = {
+	id: string;
+	name: string;
+	status: Status;
+	clause?: string;
+	vantage: string;
+	manual: boolean;
+	caveat?: string;
+	message?: string;
+	value?: unknown;
+};
 
 const statusClass = (s: string) => `st st-${s.toLowerCase()}`;
-const toRow = (r: SubtestResult): Row => ({
-	id: r.id,
-	name: r.name,
-	status: r.status,
-	clause: r.clause,
-	vantage: r.vantage,
-	manual: r.manual,
-	caveat: r.caveat,
-	message: r.message,
-	value: r.value,
-});
 
-/** A pending interaction request plus the resolver that settles the test. */
-type PendingInteraction = {
-	req: InteractionRequest;
-	resolve: (v: boolean) => void;
+/** Merge the static registry with the engine's completed results into UI rows. */
+function buildRows(): Row[] {
+	const byId = new Map(engine.results.map((r) => [r.id, r]));
+	return getRegistry().map((d) => {
+		const r = byId.get(d.id);
+		return {
+			id: d.id,
+			name: d.name,
+			status: r?.status ?? "NOTRUN",
+			clause: d.clause,
+			vantage: d.vantage,
+			manual: d.manual,
+			caveat: d.caveat,
+			message: r?.message,
+			value: r?.value,
+		};
+	});
+}
+
+const requestLabel = (req: CapabilityRequest): string => {
+	switch (req.kind) {
+		case "clickTrigger":
+			return "Click the trigger button, then report the outcome.";
+		case "confirmDialog":
+			return `Confirm the host's “${req.dialog}” dialog, then report the outcome.`;
+		case "conversationContains":
+			return `Waiting for “${req.marker}” to appear in the conversation.`;
+		case "toggleTheme":
+			return `Toggle the host theme to ${req.to}.`;
+		case "readModelToolList":
+			return "Provide the model's tool list (or skip if unavailable).";
+		case "resetIsolation":
+			return "Reset the host to a clean state before the next manual test.";
+	}
 };
 
 /** Syntax-highlight a value as pretty JSON (keys/strings/numbers/bools/null). */
@@ -128,14 +142,10 @@ function ConformanceRunner() {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const detailRef = useRef<HTMLDialogElement>(null);
 	const [detail, setDetail] = useState<Row | null>(null);
-	const [rows, setRows] = useState<Row[]>(freshRows);
-	const [runningId, setRunningId] = useState<string | null>(null);
-	const [running, setRunning] = useState(false);
-	const [ran, setRan] = useState(false);
-	const [interaction, setInteraction] = useState<PendingInteraction | null>(
-		null,
-	);
 	const [inspect, setInspect] = useState<Record<string, unknown>>({});
+
+	// Re-render whenever the engine's state changes (start/result/pending/resolve).
+	useSyncExternalStore(engine.subscribe, engine.getVersion);
 
 	const { app, error } = useApp({
 		appInfo: { name: "mcp-apps-conformance-runner", version: "0.1.0" },
@@ -154,12 +164,11 @@ function ConformanceRunner() {
 		},
 	});
 
-	// Keep the Inspector in sync with host capabilities/context (context refreshes
-	// when the host emits host-context-changed, e.g. a theme toggle).
+	// Install the Runner channel and keep the Inspector in sync with host
+	// capabilities/context (context refreshes on host-context-changed).
 	useEffect(() => {
 		if (!app) return;
-		// Register the app-provided tool up front so the host has it for the whole
-		// session (mid-run registration in the last test was missed by the host).
+		installChannel(app, signalsRef.current!);
 		try {
 			ensureAppToolRegistered(app);
 		} catch (e) {
@@ -176,89 +185,13 @@ function ConformanceRunner() {
 		return () => app.removeEventListener("hostcontextchanged", sync);
 	}, [app]);
 
-	// Core runner. `filter` selects which tests run; `reset` clears rows first
-	// (a full/auto run) vs. leaving them (a single-test run); `fullscreen` enters
-	// fullscreen for the manual finale (human "Run all" only — the hybrid driver
-	// runs manual tests one-by-one inline). Rows update via onResult (a merge), so
-	// a single-test run never wipes the others.
-	const runTests = useCallback(
-		async (
-			filter: ((d: { id: string; manual: boolean }) => boolean) | undefined,
-			opts: { reset: boolean; fullscreen: boolean },
-		) => {
-			if (!app) return;
-			if (opts.reset) {
-				setRan(false);
-				setRows(freshRows());
-			}
-			setRunning(true);
-			if (opts.reset) {
-				// Automatic tests run inline (resize/dimension checks need flexible
-				// inline mode); reset to inline in case a prior run left us fullscreen.
-				try {
-					await app.requestDisplayMode({ mode: "inline" });
-				} catch {
-					/* host may decline */
-				}
-			}
-			await runAll(
-				app,
-				signalsRef.current!,
-				{
-					onStart: (id) => setRunningId(id),
-					onResult: (r) =>
-						setRows((prev) =>
-							prev.map((row) => (row.id === r.id ? toRow(r) : row)),
-						),
-					onEnterManual: opts.fullscreen
-						? async () => {
-								try {
-									await app.requestDisplayMode({ mode: "fullscreen" });
-								} catch {
-									/* host may decline */
-								}
-							}
-						: undefined,
-					requestInteraction: (req) =>
-						new Promise<boolean>((resolve) => {
-							const settle = (v: boolean) => {
-								setInteraction(null);
-								resolve(v);
-							};
-							// "await" mode: pass automatically the moment the test's signal
-							// settles (e.g. the host-context-changed notification arrives).
-							if (req.kind === "await" && req.signal) {
-								req.signal.then(
-									() => settle(true),
-									() => settle(false),
-								);
-							}
-							setInteraction({ req, resolve: settle });
-						}),
-				},
-				filter,
-			);
-			setRunningId(null);
-			setInteraction(null);
-			setRunning(false);
-			setRan(true);
-		},
-		[app],
-	);
+	const poll = engine.poll();
+	const running = poll.state === "running";
+	const ran = poll.state === "done";
+	const runningId = poll.state === "running" ? poll.runningId : null;
+	const pending = poll.state === "running" ? poll.request : null;
 
-	// Human "Run all": full run, inline throughout (each test resets to inline,
-	// so a fullscreen finale would only apply to the first manual test anyway).
-	const run = useCallback(
-		() => runTests(undefined, { reset: true, fullscreen: false }),
-		[runTests],
-	);
-
-	const runTrigger = useCallback((req: InteractionRequest) => {
-		void Promise.resolve(req.trigger?.run()).catch((e) =>
-			console.error("[conformance] trigger error:", e),
-		);
-	}, []);
-
+	const rows = buildRows();
 	const host = app?.getHostVersion();
 	const pass = rows.filter((r) => r.status === "PASS").length;
 	const failed = rows.filter(
@@ -280,7 +213,9 @@ function ConformanceRunner() {
 		}
 		g.tests.push(r);
 	}
-	const currentRow = runningId ? rows.find((r) => r.id === runningId) : undefined;
+	const currentRow = runningId
+		? rows.find((r) => r.id === runningId)
+		: undefined;
 
 	const hostLabel = error
 		? "error"
@@ -288,59 +223,10 @@ function ConformanceRunner() {
 			? `${host?.name ?? "unknown"}${host?.version ? ` v${host.version}` : ""}`
 			: "connecting…";
 
-	// ── external-driver remote control (see automation.ts) ──────────────────────
-	// Broadcast a machine-readable snapshot so a Playwright driver can read results
-	// and know when a manual test is waiting, without scraping the DOM.
-	useStateBroadcast(() => ({
-		host: hostLabel,
-		connected: !!app,
-		running,
-		ran,
-		runningId,
-		total: rows.length,
-		done,
-		counts: rows.reduce<Record<string, number>>((a, r) => {
-			a[r.status] = (a[r.status] ?? 0) + 1;
-			return a;
-		}, {}),
-		summary: summaryText,
-		rows: rows.map((r) => ({
-			id: r.id,
-			status: r.status,
-			clause: r.clause,
-			vantage: r.vantage,
-			manual: r.manual,
-			message: r.message,
-			value: r.value,
-		})),
-		interaction: interaction
-			? {
-					prompt: interaction.req.prompt,
-					kind: interaction.req.kind,
-					trigger: interaction.req.trigger?.label ?? null,
-				}
-			: null,
-	}));
-
-	// Drive non-gesture steps over postMessage. Gesture-gated triggers (open-link,
-	// download, message, sampling) must be REAL clicks — the driver clicks the
-	// trigger button directly; "trigger" here is only a same-origin fallback.
-	useDriveListener((action, id) => {
-		if (action === "run") {
-			if (!running) void run();
-		} else if (action === "run-auto") {
-			if (!running) void runTests((d) => !d.manual, { reset: true, fullscreen: false });
-		} else if (action === "run-test") {
-			if (!running && id)
-				void runTests((d) => d.id === id, { reset: false, fullscreen: false });
-		} else if (action === "trigger") {
-			if (interaction?.req.trigger) runTrigger(interaction.req);
-		} else if (action === "yes") {
-			interaction?.resolve(true);
-		} else if (action === "no" || action === "skip") {
-			interaction?.resolve(false);
-		}
-	});
+	const run = () => {
+		if (!running) window[CHANNEL]?.start();
+	};
+	const resolve = (ok: boolean) => window[CHANNEL]?.resolve({ ok });
 
 	return (
 		<main className="wrap">
@@ -352,7 +238,7 @@ function ConformanceRunner() {
 					</p>
 				</div>
 				<div className="head-actions">
-					{ran && !running && (
+					{ran && (
 						<span className={failed === 0 ? "summary ok" : "summary bad"}>
 							{summaryText}
 						</span>
@@ -460,7 +346,7 @@ function ConformanceRunner() {
 				</aside>
 
 				<section className="current">
-					{interaction ? (
+					{pending ? (
 						<div className="current-card">
 							<div className="current-id mono">
 								{currentRow?.id ?? runningId}
@@ -471,52 +357,42 @@ function ConformanceRunner() {
 								{currentRow?.manual ? " · manual" : ""}
 							</div>
 							<span className="interaction-tag">action needed</span>
-							<p className="interaction-prompt">{interaction.req.prompt}</p>
+							<p className="interaction-prompt">{requestLabel(pending)}</p>
 							<div className="interaction-actions">
-								{interaction.req.trigger && (
+								{pending.kind === "clickTrigger" && (
 									<button
 										type="button"
 										className="trigger-btn"
-										data-testid="trigger"
-										onClick={() => runTrigger(interaction.req)}
+										data-testid="conformance-trigger"
+										onClick={() => engine.invokeTrigger()}
 									>
-										{interaction.req.trigger.label}
+										▶ Trigger action
 									</button>
 								)}
-								{interaction.req.kind === "await" ? (
-									<>
-										<span className="awaiting">
-											<span className="spinner" /> detecting…
-										</span>
-										<button
-											type="button"
-											className="verdict-btn no"
-											data-testid="verdict-skip"
-											onClick={() => interaction.resolve(false)}
-										>
-											Skip
-										</button>
-									</>
-								) : (
-									<>
-										<button
-											type="button"
-											className="verdict-btn ok"
-											data-testid="verdict-yes"
-											onClick={() => interaction.resolve(true)}
-										>
-											✅ It worked
-										</button>
-										<button
-											type="button"
-											className="verdict-btn no"
-											data-testid="verdict-no"
-											onClick={() => interaction.resolve(false)}
-										>
-											❌ It didn’t
-										</button>
-									</>
-								)}
+								<button
+									type="button"
+									className="verdict-btn ok"
+									data-testid="verdict-yes"
+									onClick={() => resolve(true)}
+								>
+									✅ It worked
+								</button>
+								<button
+									type="button"
+									className="verdict-btn no"
+									data-testid="verdict-no"
+									onClick={() => resolve(false)}
+								>
+									❌ It didn’t
+								</button>
+								<button
+									type="button"
+									className="verdict-btn no"
+									data-testid="verdict-skip"
+									onClick={() => engine.skipCurrent()}
+								>
+									Skip
+								</button>
 							</div>
 						</div>
 					) : currentRow ? (
@@ -536,18 +412,19 @@ function ConformanceRunner() {
 						<div className="current-card idle">
 							{ran ? (
 								<>
-									<div
-										className={`big-summary ${failed === 0 ? "ok" : "bad"}`}
-									>
+									<div className={`big-summary ${failed === 0 ? "ok" : "bad"}`}>
 										{summaryText}
 									</div>
-									<p>Run complete. Toggle a group on the left to review each test.</p>
+									<p>
+										Run complete. Toggle a group on the left to review each
+										test.
+									</p>
 								</>
 							) : (
 								<p>
-									Click <strong>Run conformance tests</strong> to start. Tests run
-									one at a time — the current test shows here, and results fill in
-									the groups on the left.
+									Click <strong>Run conformance tests</strong> to start. Tests
+									run one at a time — the current test shows here, and results
+									fill in the groups on the left.
 								</p>
 							)}
 						</div>

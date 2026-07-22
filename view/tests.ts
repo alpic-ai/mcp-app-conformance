@@ -6,15 +6,20 @@
  * WPT-path style. Each test carries a `vantage` (where it can be observed) and,
  * where relevant, a `caveat` warning about what the result can't distinguish.
  *
- * Everything here is `vantage: "in-view"` — measurable from inside the iframe.
- * Requirements needing the server's or the agent's vantage live in the README
- * catalogue and will be covered by server-side judging / an agent harness.
+ * Automatic tests (`vantage: "in-view"`) measure the host from inside the iframe
+ * with `t.assert` / the probes / `t.app.*`. Manual tests emit typed
+ * `CapabilityRequest`s (`t.host(...)`) that an external Runner — or a human
+ * clicking the UI — resolves.
  */
 import type {
 	App,
 	McpUiSupportedContentBlockModalities,
 } from "@modelcontextprotocol/ext-apps";
-import { mcp_test, type TestContext } from "./testharness";
+import { mcp_test, type TestContext } from "./harness/registry";
+
+// Markers the Runner searches for in the host conversation (conversationContains).
+const MESSAGE_MARKER = "conformance-msg-b8f1c2e7";
+const MODEL_CONTEXT_MARKER = "MCP-APP-7421";
 
 // ── app-provided tool, registered ONCE at connect (see ensureAppToolRegistered) ──
 // Registering mid-run inside the last test was unreliable: a host may snapshot the
@@ -539,7 +544,7 @@ mcp_test(
 		vantage: "in-view",
 		timeoutMs: 5000,
 		caveat:
-			"Flexible mode only (reports INFO if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
+			"Flexible mode only (returns vacuously if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
 	},
 );
 
@@ -567,35 +572,24 @@ mcp_test(
 		clause: "SHOULD",
 		vantage: "in-view",
 		caveat:
-			"Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources; reports INFO otherwise.",
+			"Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources.",
 	},
 );
 
-// ── interactive · manual (human action → capture) ────────────────────────────
+// ── interactive · manual (host round-trip via CapabilityRequest) ──────────────
 // The host emits ui/notifications/context-changed when context fields change.
-// The operator changes the theme; we then capture hostContext in-view (updated
-// via onhostcontextchanged) and assert it actually changed.
+// The Runner flips the host theme; we resolve as soon as the view sees a
+// hostcontextchanged notification.
 mcp_test(
 	"context/context-changed",
-	"host notifies the view when the user changes the theme",
+	"host notifies the view when the theme changes",
 	async (t: TestContext) => {
-		const before = t.app.getHostContext()?.theme;
-		// Resolve as soon as a host-context-changed carrying a *different* theme
-		// arrives — the test then passes automatically (no confirmation click).
-		const themeChanged = new Promise<void>((resolve) => {
-			const handler = (params: { theme?: unknown }) => {
-				const next = params?.theme ?? t.app.getHostContext()?.theme;
-				if (next !== undefined && next !== before) resolve();
-			};
-			t.app.addEventListener("hostcontextchanged", handler);
-			t.addCleanup(() =>
-				t.app.removeEventListener("hostcontextchanged", handler),
-			);
-		});
-		await t.awaitUserAction(
-			`Toggle your host's theme (light ⇄ dark) — I'll detect it automatically. Current: "${before ?? "unknown"}".`,
-			themeChanged,
-		);
+		for (const to of ["dark", "light"] as const) {
+			const changed = t.awaitHostContextChanged();
+			await t.host({ kind: "toggleTheme", to });
+			if (await t.settled(changed, 15_000)) return;
+		}
+		t.skip("host did not emit context-changed (may be pinned, not on System)");
 	},
 	{
 		clause: "MAY",
@@ -603,29 +597,22 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Human-in-the-loop but auto-passing: the operator toggles the theme and the runner resolves on the host-context-changed notification (no confirmation click). Skip if the host doesn't emit it.",
+			"The Runner toggles the host theme and the view resolves on the hostcontextchanged notification. SKIP if the host doesn't emit it (e.g. theme pinned, not following the OS).",
 	},
 );
 
-// ── interactive · manual (human declaration) ─────────────────────────────────
+// ── interactive · manual (host round-trip via CapabilityRequest) ──────────────
 // The host opens ui/open-link URLs in the user's browser / a new tab. The
-// sandboxed view can't observe a new tab (host vantage), so the operator
-// triggers the action and declares the outcome.
+// sandboxed view can't observe a new tab (host vantage), so the Runner clicks the
+// trigger and confirms the host surfaced/accepted the open-link dialog.
 mcp_test(
 	"links/open-external",
-	"ui/open-link opens the URL (human-verified)",
+	"ui/open-link opens the URL",
 	async (t: TestContext) => {
-		const opened = await t.confirmWithUser(
-			"Click “Open link”. Your host should open https://modelcontextprotocol.io in a new tab. Did it open?",
-			{
-				label: "🔗 Open link",
-				run: () => t.app.openLink({ url: "https://modelcontextprotocol.io/" }),
-			},
-		);
-		t.assert(
-			opened,
-			"operator reported the host did not open the link (ui/open-link not honoured)",
-		);
+		t.bindTrigger(() => t.app.openLink({ url: "https://modelcontextprotocol.io/" }));
+		await t.host({ kind: "clickTrigger" });
+		const r = await t.host({ kind: "confirmDialog", dialog: "open-link" });
+		t.assert(r.ok, "host did not surface/accept the open-link dialog");
 	},
 	{
 		clause: "SHOULD",
@@ -633,40 +620,34 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Human-verified: the sandboxed view can't see the host open a tab, so the operator confirms the outcome after triggering ui/open-link.",
+			"Host-vantage: the sandboxed view can't see the host open a tab, so the Runner triggers ui/open-link and confirms the host surfaced/accepted it.",
 	},
 );
 
 // messages — host adds a ui/message to the conversation. The view can't read the
-// host's conversation, so the operator triggers it and confirms it appeared.
+// host's conversation, so the Runner triggers it (committing any drafted message)
+// and confirms the marker appeared.
 mcp_test(
 	"messages/add-to-conversation",
-	"ui/message is added to the conversation (human-verified)",
+	"ui/message is added to the conversation",
 	async (t: TestContext) => {
 		t.assert(
 			!!t.app.getHostCapabilities()?.message,
-			"host does not advertise ui/message support",
+			"host does not advertise ui/message",
 		);
-		const added = await t.confirmWithUser(
-			"Click “Send message” — a message from this app should appear in your conversation. Did it?",
-			{
-				label: "💬 Send message",
-				run: () =>
-					t.app.sendMessage({
-						role: "user",
-						content: [
-							{
-								type: "text",
-								text: "Conformance check: this message was sent by the MCP App via ui/message.",
-							},
-						],
-					}),
-			},
+		t.bindTrigger(() =>
+			t.app.sendMessage({
+				role: "user",
+				content: [{ type: "text", text: MESSAGE_MARKER }],
+			}),
 		);
-		t.assert(
-			added,
-			"operator reported the ui/message was not added to the conversation",
-		);
+		await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+		const r = await t.host({
+			kind: "conversationContains",
+			marker: MESSAGE_MARKER,
+			timeoutMs: 120_000,
+		});
+		t.assert(r.ok, "ui/message never appeared in the conversation");
 	},
 	{
 		clause: "SHOULD",
@@ -674,41 +655,47 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Human-verified: the view can't read the host's conversation, so the operator confirms the message appeared (role preserved).",
+			"Host-vantage: the view can't read the host's conversation, so the Runner confirms the marker appeared (some hosts draft into the composer — commitDraftedMessage sends it).",
 	},
 );
 
 // visibility — app-only tools (visibility lacking "model") must be hidden from
-// the agent's tool list. We make the app ask the agent to enumerate its tools
-// (via ui/message), then the operator confirms the app-only tool is absent.
+// the agent's tool list. Prefer the direct desktop-host affordance; else fall
+// back to asking the agent to enumerate its tools and confirm the name is absent.
 mcp_test(
 	"visibility/app-tool-hidden",
-	"host hides app-only tools from the agent (human-verified)",
+	"host hides app-only tools from the agent",
 	async (t: TestContext) => {
+		const direct = await t.hostOptional({ kind: "readModelToolList" });
+		if (!direct.unsupported) {
+			t.assert(
+				!(direct.value as string[]).includes("conformance_probe"),
+				"app-only tool `conformance_probe` is present in the model's tool list (must be hidden)",
+			);
+			return;
+		}
 		t.assert(
 			!!t.app.getHostCapabilities()?.message,
-			"host does not advertise ui/message support",
+			"host does not advertise ui/message",
 		);
-		const hidden = await t.confirmWithUser(
-			"Click “Ask the agent”, then read its reply. The app-only tool `conformance_probe` MUST NOT appear in the agent's tool list — is it correctly absent?",
-			{
-				label: "🤖 Ask the agent",
-				run: () =>
-					t.app.sendMessage({
-						role: "user",
-						content: [
-							{
-								type: "text",
-								text: "From the MCP Apps Conformance server specifically, list every tool you can call, by name (ignore tools from other connected servers).",
-							},
-						],
-					}),
-			},
+		t.bindTrigger(() =>
+			t.app.sendMessage({
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: "From the MCP Apps Conformance server specifically, list every tool you can call, by name (ignore tools from other connected servers).",
+					},
+				],
+			}),
 		);
-		t.assert(
-			hidden,
-			"operator reported the app-only tool `conformance_probe` was visible to the agent (must be hidden)",
-		);
+		await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+		const r = await t.host({
+			kind: "conversationContains",
+			marker: "conformance_probe",
+			timeoutMs: 45_000,
+		});
+		t.assert(!r.ok, "hidden tool name `conformance_probe` surfaced in the conversation");
 	},
 	{
 		clause: "MUST NOT",
@@ -716,58 +703,44 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			'Human-verified via the agent\'s own tool enumeration: `conformance_probe` is app-only (visibility ["app"]) so it must not be in the model-facing tools/list. Relies on the agent answering truthfully.',
+			'`conformance_probe` is app-only (visibility ["app"]) so it must not be in the model-facing tools/list. Uses the desktop-host tool-list affordance if available, else the agent\'s own (truthful) enumeration.',
 	},
 );
 
-// security — the host warns when a UI declares external domain access. The
-// NOTE: security/external-domain-warning is intentionally NOT implemented here.
-// The spec clause (apps.mdx L1757) is about the host warning that the UI requires
-// external-domain network access via csp.connectDomains — shown at connection time
-// (e.g. ChatGPT lists the required domains when adding the connector), not via
-// ui/open-link. That's a connect-time host-surface check, out of scope for the
-// in-view runner; it stays in the catalogue as pending.
-
 // model-context — context provided via ui/update-model-context must reach the
 // model on a future turn. The app seeds a secret code, then asks the agent for
-// it (via ui/message); the operator confirms the agent recalled it.
+// it; the Runner confirms the agent recalled it in the conversation.
 mcp_test(
 	"model-context/provide-future-turns",
-	"ui/update-model-context reaches the model next turn (human-verified)",
+	"ui/update-model-context reaches the model next turn",
 	async (t: TestContext) => {
 		t.assert(
 			!!t.app.getHostCapabilities()?.updateModelContext,
-			"host does not advertise ui/update-model-context support",
+			"host does not advertise ui/update-model-context",
 		);
-		const recalled = await t.confirmWithUser(
-			"Click “Seed + ask”. The app sets a secret code via update-model-context, then asks the agent for it. Did the agent answer with “MCP-APP-7421”?",
-			{
-				label: "🧠 Seed + ask",
-				run: async () => {
-					await t.app.updateModelContext({
-						content: [
-							{
-								type: "text",
-								text: "The secret conformance code is MCP-APP-7421. Remember it for later.",
-							},
-						],
-					});
-					await t.app.sendMessage({
-						role: "user",
-						content: [
-							{
-								type: "text",
-								text: "What is the secret conformance code I gave you?",
-							},
-						],
-					});
-				},
-			},
-		);
-		t.assert(
-			recalled,
-			"operator reported the agent did not receive the model context on the next turn",
-		);
+		t.bindTrigger(async () => {
+			await t.app.updateModelContext({
+				content: [
+					{
+						type: "text",
+						text: `The secret conformance code is ${MODEL_CONTEXT_MARKER}. Remember it for later.`,
+					},
+				],
+			});
+			await t.app.sendMessage({
+				role: "user",
+				content: [
+					{ type: "text", text: "What is the secret conformance code I gave you?" },
+				],
+			});
+		});
+		await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+		const r = await t.host({
+			kind: "conversationContains",
+			marker: MODEL_CONTEXT_MARKER,
+			timeoutMs: 120_000,
+		});
+		t.assert(r.ok, "the model did not receive the seeded context on the next turn");
 	},
 	{
 		clause: "SHOULD",
@@ -775,7 +748,7 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Multi-turn, human-verified: seeds ui/update-model-context then asks the agent to recall it; confirms the host fed the context to the model on the following turn.",
+			"Multi-turn, host-vantage: seeds ui/update-model-context then asks the agent to recall it; confirms the host fed the context to the model on the following turn.",
 	},
 );
 
@@ -806,34 +779,27 @@ mcp_test(
 // Capability-gated; the host has discretion (model choice, rate-limit, approval).
 mcp_test(
 	"sampling/create-message",
-	"sampling/createMessage returns a completion (human-verified)",
+	"sampling/createMessage returns a completion",
 	async (t: TestContext) => {
 		t.assert(
 			!!t.app.getHostCapabilities()?.sampling,
 			"host does not advertise the sampling capability",
 		);
-		const worked = await t.confirmWithUser(
-			"Click “Ask model”. The app requests a one-line completion via sampling/createMessage — the host may ask you to approve it. Did the model reply?",
-			{
-				label: "🤖 Ask model",
-				run: async () => {
-					const res = await t.app.createSamplingMessage({
-						messages: [
-							{
-								role: "user",
-								content: {
-									type: "text",
-									text: "Reply with the single word: pong.",
-								},
-							},
-						],
-						maxTokens: 16,
-					});
-					console.log("[conformance] sampling result:", res);
-				},
-			},
-		);
-		t.assert(worked, "operator reported no completion was returned");
+		t.bindTrigger(async () => {
+			const res = await t.app.createSamplingMessage({
+				messages: [
+					{
+						role: "user",
+						content: { type: "text", text: "Reply with the single word: pong." },
+					},
+				],
+				maxTokens: 16,
+			});
+			console.log("[conformance] sampling result:", res);
+		});
+		await t.host({ kind: "clickTrigger" });
+		const r = await t.host({ kind: "confirmDialog", dialog: "sampling" });
+		t.assert(r.ok, "host did not surface/accept the sampling request");
 	},
 	{
 		clause: "SHOULD",
@@ -841,41 +807,38 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Draft. Capability-gated. The host has full discretion (model selection, rate limiting, user approval); the operator triggers the call, may approve it, and confirms the reply. The rate-limit/approval itself is host-vantage.",
+			"Draft. Capability-gated. The host has full discretion (model selection, rate limiting, user approval); the Runner triggers the call, may approve it, and confirms the reply.",
 	},
 );
 
 // The host performs a host-mediated file download for ui/download-file (direct
 // downloads are blocked in the sandbox). The download + any confirmation dialog
-// happen outside the iframe, so the operator confirms.
+// happen outside the iframe, so the Runner confirms.
 mcp_test(
 	"download-file/confirm",
-	"ui/download-file downloads a file (human-verified)",
+	"ui/download-file downloads a file",
 	async (t: TestContext) => {
 		t.assert(
 			!!t.app.getHostCapabilities()?.downloadFile,
 			"host does not advertise the downloadFile capability",
 		);
-		const downloaded = await t.confirmWithUser(
-			"Click “Download”. The host should download a small text file (ideally after a confirmation dialog). Did it download?",
-			{
-				label: "⬇️ Download file",
-				run: () =>
-					t.app.downloadFile({
-						contents: [
-							{
-								type: "resource",
-								resource: {
-									uri: "ui://conformance/hello.txt",
-									mimeType: "text/plain",
-									text: "MCP Apps conformance — download test.",
-								},
-							},
-						],
-					}),
-			},
+		t.bindTrigger(() =>
+			t.app.downloadFile({
+				contents: [
+					{
+						type: "resource",
+						resource: {
+							uri: "ui://conformance/hello.txt",
+							mimeType: "text/plain",
+							text: "MCP Apps conformance — download test.",
+						},
+					},
+				],
+			}),
 		);
-		t.assert(downloaded, "operator reported the download did not happen");
+		await t.host({ kind: "clickTrigger" });
+		const r = await t.host({ kind: "confirmDialog", dialog: "download" });
+		t.assert(r.ok, "host did not surface/accept the download");
 	},
 	{
 		clause: "SHOULD",
@@ -883,16 +846,16 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Draft. Host-vantage: the download and its confirmation dialog occur outside the sandboxed iframe, so the operator confirms. Skips (INFO) if the host doesn't advertise downloadFile.",
+			"Draft. Host-vantage: the download and its confirmation dialog occur outside the sandboxed iframe, so the Runner confirms.",
 	},
 );
 
 // App-Provided Tools: the app registers a tool and the host/agent calls it
-// (Host→App tools/call). The operator asks the agent to invoke it; the runner
+// (Host→App tools/call). The Runner asks the agent to invoke it; the harness
 // detects the registered callback firing.
 mcp_test(
 	"app-tools/call",
-	"host calls an app-registered tool (human-verified)",
+	"host calls an app-registered tool",
 	async (t: TestContext) => {
 		// conformance_ping is registered once at connect (ensureAppToolRegistered).
 		// If registration itself can't occur, fail immediately — there's nothing to
@@ -902,24 +865,20 @@ mcp_test(
 			appToolRegistered,
 			`app tool registration failed: ${appToolRegisterError ?? "unknown error"}`,
 		);
-		const called = nextAppToolCall();
-		await t.awaitUserAction(
-			"Click “Ask the agent” — the app asks the agent to call conformance_ping. I'll detect the call automatically.",
-			called,
-			{
-				label: "🤖 Ask the agent",
-				run: () =>
-					t.app.sendMessage({
-						role: "user",
-						content: [
-							{
-								type: "text",
-								text: 'Call the app tool named "conformance_ping" now (it is provided by the MCP Apps Conformance server).',
-							},
-						],
-					}),
-			},
+		t.bindTrigger(() =>
+			t.app.sendMessage({
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: 'Call the app tool named "conformance_ping" now (it is provided by the MCP Apps Conformance server).',
+					},
+				],
+			}),
 		);
+		await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+		const called = await t.settled(nextAppToolCall(), 25_000);
+		t.assert(called, "the agent did not call the app-registered tool conformance_ping");
 	},
 	{
 		clause: "MAY",
@@ -927,6 +886,6 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Draft (App-Provided Tools). Requires the host to expose app-registered tools to the agent; the operator asks the agent to call it and the runner detects the callback.",
+			"Draft (App-Provided Tools). Requires the host to expose app-registered tools to the agent; the Runner asks the agent to call it and the harness detects the callback.",
 	},
 );

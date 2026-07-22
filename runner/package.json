@@ -1,0 +1,16 @@
+{
+  "name": "@mcp-apps-conformance/runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "External conformance driver: pluggable Host + generic Runner over the in-iframe TestSuite.",
+  "scripts": {
+    "driver": "tsx src/cli.ts",
+    "report": "tsx src/report.ts",
+    "how-it-works": "tsx src/how-it-works.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
