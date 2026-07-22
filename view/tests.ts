@@ -604,15 +604,18 @@ mcp_test(
 // ── interactive · manual (host round-trip via CapabilityRequest) ──────────────
 // The host opens ui/open-link URLs in the user's browser / a new tab. The
 // sandboxed view can't observe a new tab (host vantage), so the Runner clicks the
-// trigger and confirms the host surfaced/accepted the open-link dialog.
+// trigger and then checks the link actually opened — accepting a consent dialog
+// if the host shows one, but not requiring one (some hosts open directly).
 mcp_test(
 	"links/open-external",
 	"ui/open-link opens the URL",
 	async (t: TestContext) => {
-		t.bindTrigger(() => t.app.openLink({ url: "https://modelcontextprotocol.io/" }));
+		// A URL that does NOT redirect, so the opened tab's URL matches exactly.
+		const url = "https://modelcontextprotocol.io/docs/getting-started/intro";
+		t.bindTrigger(() => t.app.openLink({ url }));
 		await t.host({ kind: "clickTrigger" });
-		const r = await t.host({ kind: "confirmDialog", dialog: "open-link" });
-		t.assert(r.ok, "host did not surface/accept the open-link dialog");
+		const r = await t.host({ kind: "checkLinkOpen", url });
+		t.assert(r.ok, "host did not open the link");
 	},
 	{
 		clause: "SHOULD",
@@ -620,7 +623,7 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Host-vantage: the sandboxed view can't see the host open a tab, so the Runner triggers ui/open-link and confirms the host surfaced/accepted it.",
+			"Host-vantage: the sandboxed view can't see the host open a tab, so the Runner triggers ui/open-link and verifies a tab opened (accepting a consent dialog if shown; some hosts open with none).",
 	},
 );
 

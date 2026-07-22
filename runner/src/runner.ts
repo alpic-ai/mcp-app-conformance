@@ -63,6 +63,8 @@ export class Runner {
         return h.clickTrigger?.(req) ?? Promise.resolve(unsupported());
       case "confirmDialog":
         return h.confirmDialog?.(req.dialog) ?? Promise.resolve(unsupported());
+      case "checkLinkOpen":
+        return h.checkLinkOpen?.(req.url) ?? Promise.resolve(unsupported());
       case "conversationContains":
         return h.conversationContains?.(req.marker, req.timeoutMs) ?? Promise.resolve(unsupported());
       case "toggleTheme":

@@ -18,7 +18,8 @@ export interface Host {
   setup(opts: SetupOptions): Promise<SuiteBridge>;
   teardown(): Promise<void>;
   clickTrigger?(req: { commitDraftedMessage?: boolean }): Promise<CapabilityResult>;
-  confirmDialog?(dialog: "open-link" | "download" | "sampling"): Promise<CapabilityResult>;
+  confirmDialog?(dialog: "download" | "sampling"): Promise<CapabilityResult>;
+  checkLinkOpen?(url: string): Promise<CapabilityResult>;
   conversationContains?(marker: string, timeoutMs: number): Promise<CapabilityResult>;
   toggleTheme?(to: "light" | "dark"): Promise<CapabilityResult>;
   readModelToolList?(): Promise<CapabilityResult>;

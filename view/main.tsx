@@ -80,6 +80,8 @@ const requestLabel = (req: CapabilityRequest): string => {
 			return "Click the trigger button, then report the outcome.";
 		case "confirmDialog":
 			return `Confirm the host's “${req.dialog}” dialog, then report the outcome.`;
+		case "checkLinkOpen":
+			return `Open the link — a tab at ${req.url} should open.`;
 		case "conversationContains":
 			return `Waiting for “${req.marker}” to appear in the conversation.`;
 		case "toggleTheme":
