@@ -62,6 +62,7 @@ def main() -> int:
                 results[hd.name] = r
     hosts = list(results)
     by_host_row = {h: {row.get("id"): row for row in results[h].get("rows", [])} for h in hosts}
+    values: dict[str, str] = {}  # "id::host" -> pretty JSON of the captured value
 
     def cell(host: str, rid: str) -> str:
         row = by_host_row[host].get(rid)
@@ -75,7 +76,12 @@ def main() -> int:
         if parts:
             has = " has-tip"
             tip = '<span class="tip">' + "<br>".join(html.escape(p) for p in parts) + "</span>"
-        return f'<td class="st {cls}{has}">{html.escape(status or "—")}{tip}</td>'
+        val = ""
+        if row.get("value") is not None:
+            key = f"{rid}::{host}"
+            values[key] = json.dumps(row["value"], indent=2)
+            val = f"<button type=\"button\" class=\"val-link\" onclick=\"openVal('{key}')\" title=\"Show the value the host provided\">ⓥ</button>"
+        return f'<td class="st {cls}{has}">{html.escape(status or "—")}{val}{tip}</td>'
 
     impl = [e for e in catalogue if e.get("implemented")]
     pending = [e for e in catalogue if not e.get("implemented")]
@@ -115,6 +121,7 @@ def main() -> int:
 
     generated = datetime.now().strftime("%Y-%m-%d %H:%M")
     hostlist = ", ".join(html.escape(h) for h in hosts) or "no results yet — run the driver"
+    values_js = json.dumps(values)  # captured host values, embedded for the value modal
     doc = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>MCP Apps Conformance — results</title>
 <style>
@@ -152,6 +159,13 @@ def main() -> int:
   .legend span {{ padding:2px 8px; border-radius:6px; }}
   table.pending td.id {{ position:static; }} table.pending {{ color:var(--muted); }}
   table.pending a {{ color:var(--accent); text-decoration:none; }} table.pending a:hover {{ text-decoration:underline; }}
+  .val-link {{ border:none; background:transparent; cursor:pointer; color:var(--accent); font-size:11px; margin-left:5px; padding:0; }}
+  .val-dialog {{ border:1px solid var(--line); border-radius:12px; padding:18px; max-width:620px; width:90vw; }}
+  .val-dialog::backdrop {{ background:rgba(0,0,0,0.4); }}
+  .val-head {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }}
+  .val-head h2 {{ font-size:14px; margin:0; font-family:ui-monospace,Menlo,monospace; }}
+  .val-close {{ border:none; background:transparent; font-size:22px; line-height:1; cursor:pointer; color:var(--muted); }}
+  #val-body {{ background:#f6f8fa; padding:12px; border-radius:6px; overflow:auto; font-size:11px; font-family:ui-monospace,Menlo,monospace; max-height:62vh; white-space:pre; margin:0; }}
 </style></head><body>
 <h1>MCP Apps Conformance — results</h1>
 <div class="gen">Generated {generated} · hosts: {hostlist}</div>
@@ -159,6 +173,18 @@ def main() -> int:
 <div class="legend"><span class="pass">PASS</span><span class="fail">FAIL / TIMEOUT</span><span class="notrun">not run</span>&nbsp;hover a cell for the message / driver action · click a test's spec link for the exact line</div>
 <table><thead><tr><th class="corner">Test</th>{head_cells}</tr></thead><tbody>{body}</tbody></table>
 {pend}
+<dialog id="val-dialog" class="val-dialog">
+  <div class="val-head"><h2 id="val-title">value</h2><button type="button" class="val-close" onclick="document.getElementById('val-dialog').close()">×</button></div>
+  <pre id="val-body"></pre>
+</dialog>
+<script>
+const VALUES = {values_js};
+function openVal(k) {{
+  document.getElementById('val-title').textContent = k;
+  document.getElementById('val-body').textContent = VALUES[k] || '(no value)';
+  document.getElementById('val-dialog').showModal();
+}}
+</script>
 </body></html>"""
 
     out_file = HERE.parent / "docs" / "index.html"  # tracked path served by GitHub Pages

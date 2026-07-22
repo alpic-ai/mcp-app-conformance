@@ -23,7 +23,7 @@
   { "id": "links/open-external", "clause": "SHOULD", "vantage": "host", "spec": "2026-01-26", "line": 996, "implemented": true },
   { "id": "messages/add-to-conversation", "clause": "SHOULD", "vantage": "host", "spec": "2026-01-26", "line": 1033, "implemented": true },
   { "id": "model-context/provide-future-turns", "clause": "SHOULD", "vantage": "host", "spec": "2026-01-26", "line": 1097, "implemented": true },
-  { "id": "security/external-domain-warning", "clause": "SHOULD", "vantage": "host", "spec": "2026-01-26", "line": 1757, "implemented": true },
+  { "id": "security/external-domain-warning", "clause": "SHOULD", "vantage": "host", "spec": "2026-01-26", "line": 1757, "implemented": false },
   { "id": "sampling/create-message", "clause": "SHOULD", "vantage": "host", "spec": "draft", "line": 534, "implemented": true },
   { "id": "download-file/confirm", "clause": "SHOULD", "vantage": "host", "spec": "draft", "line": 1128, "implemented": true },
 

@@ -721,33 +721,12 @@ mcp_test(
 );
 
 // security — the host warns when a UI declares external domain access. The
-// runner declares csp.connectDomains, so this is a recall check (the warning,
-// if any, is shown at load — there's no view-side trigger).
-mcp_test(
-	"security/external-domain-warning",
-	"host warns when the UI accesses an external domain (human-verified)",
-	async (t: TestContext) => {
-		const warned = await t.confirmWithUser(
-			"Click “Open external link” — the app is trying to reach an external domain. Did your host warn you about the external-domain access?",
-			{
-				label: "🔗 Open external link",
-				run: () => t.app.openLink({ url: "https://modelcontextprotocol.io/" }),
-			},
-		);
-		t.assert(
-			warned,
-			"operator reported no external-domain-access warning was shown",
-		);
-	},
-	{
-		clause: "SHOULD",
-		vantage: "host",
-		manual: true,
-		timeoutMs: 0,
-		caveat:
-			"Human-verified: triggers an external-domain access via ui/open-link and the operator confirms the host warned. Pairs with links/open-external, which checks the link actually opens.",
-	},
-);
+// NOTE: security/external-domain-warning is intentionally NOT implemented here.
+// The spec clause (apps.mdx L1757) is about the host warning that the UI requires
+// external-domain network access via csp.connectDomains — shown at connection time
+// (e.g. ChatGPT lists the required domains when adding the connector), not via
+// ui/open-link. That's a connect-time host-surface check, out of scope for the
+// in-view runner; it stays in the catalogue as pending.
 
 // model-context — context provided via ui/update-model-context must reach the
 // model on a future turn. The app seeds a secret code, then asks the agent for
