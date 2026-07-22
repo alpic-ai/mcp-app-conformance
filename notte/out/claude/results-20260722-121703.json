@@ -1,0 +1,440 @@
+{
+  "app_name": "Mcp Apps Conformance",
+  "host": "Claude v1.0.0",
+  "capturedAt": "2026-07-22T12:17:03.109598+00:00",
+  "counts": {
+    "PASS": 24,
+    "FAIL": 4,
+    "NOTRUN": 1
+  },
+  "summary": "24/29 passing",
+  "driven": {
+    "context/context-changed": "skip (no interaction appeared)",
+    "links/open-external": "yes",
+    "messages/add-to-conversation": "yes",
+    "visibility/app-tool-hidden": "yes",
+    "model-context/provide-future-turns": "no",
+    "sampling/create-message": "auto:FAIL",
+    "download-file/confirm": "yes",
+    "app-tools/call": "skip (host did not call the app tool \u2014 likely unsupported)"
+  },
+  "rows": [
+    {
+      "id": "lifecycle/initialize-capabilities",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": {
+        "openLinks": {},
+        "downloadFile": {},
+        "serverTools": {
+          "listChanged": true
+        },
+        "serverResources": {
+          "listChanged": true
+        },
+        "logging": {},
+        "sandbox": {
+          "permissions": null,
+          "csp": {
+            "connectDomains": [
+              "https://modelcontextprotocol.io"
+            ]
+          }
+        },
+        "updateModelContext": {
+          "text": {},
+          "image": {}
+        },
+        "message": {
+          "text": {}
+        }
+      }
+    },
+    {
+      "id": "context/initialize-hostcontext",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": {
+        "toolInfo": {
+          "id": "toolu_01J62Su4o9fWyU8xnSABvQoS",
+          "tool": {
+            "name": "run_conformance",
+            "description": "Run the MCP Apps conformance test suite against this host.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "required": null
+            },
+            "annotations": null,
+            "_meta": {
+              "ui": {
+                "resourceUri": "ui://conformance/runner",
+                "visibility": [
+                  "model",
+                  "app"
+                ]
+              },
+              "ui/resourceUri": "ui://conformance/runner"
+            }
+          }
+        },
+        "theme": "light",
+        "styles": {
+          "variables": {
+            "--color-background-primary": "light-dark(rgba(255, 255, 255, 1), rgba(48, 48, 46, 1))",
+            "--color-background-secondary": "light-dark(rgba(245, 244, 237, 1), rgba(38, 38, 36, 1))",
+            "--color-background-tertiary": "light-dark(rgba(250, 249, 245, 1), rgba(20, 20, 19, 1))",
+            "--color-background-inverse": "light-dark(rgba(20, 20, 19, 1), rgba(250, 249, 245, 1))",
+            "--color-background-ghost": "light-dark(rgba(255, 255, 255, 0), rgba(48, 48, 46, 0))",
+            "--color-background-info": "light-dark(rgba(214, 228, 246, 1), rgba(37, 62, 95, 1))",
+            "--color-background-danger": "light-dark(rgba(247, 236, 236, 1), rgba(96, 42, 40, 1))",
+            "--color-background-success": "light-dark(rgba(233, 241, 220, 1), rgba(27, 70, 20, 1))",
+            "--color-background-warning": "light-dark(rgba(246, 238, 223, 1), rgba(72, 58, 15, 1))",
+            "--color-background-disabled": "light-dark(rgba(255, 255, 255, 0.5), rgba(48, 48, 46, 0.5))",
+            "--color-text-primary": "light-dark(rgba(20, 20, 19, 1), rgba(250, 249, 245, 1))",
+            "--color-text-secondary": "light-dark(rgba(61, 61, 58, 1), rgba(194, 192, 182, 1))",
+            "--color-text-tertiary": "light-dark(rgba(115, 114, 108, 1), rgba(156, 154, 146, 1))",
+            "--color-text-inverse": "light-dark(rgba(255, 255, 255, 1), rgba(20, 20, 19, 1))",
+            "--color-text-ghost": "light-dark(rgba(115, 114, 108, 0.5), rgba(156, 154, 146, 0.5))",
+            "--color-text-info": "light-dark(rgba(50, 102, 173, 1), rgba(128, 170, 221, 1))",
+            "--color-text-danger": "light-dark(rgba(127, 44, 40, 1), rgba(238, 136, 132, 1))",
+            "--color-text-success": "light-dark(rgba(38, 91, 25, 1), rgba(122, 185, 72, 1))",
+            "--color-text-warning": "light-dark(rgba(90, 72, 21, 1), rgba(209, 160, 65, 1))",
+            "--color-text-disabled": "light-dark(rgba(20, 20, 19, 0.5), rgba(250, 249, 245, 0.5))",
+            "--color-border-primary": "light-dark(rgba(31, 30, 29, 0.4), rgba(222, 220, 209, 0.4))",
+            "--color-border-secondary": "light-dark(rgba(31, 30, 29, 0.3), rgba(222, 220, 209, 0.3))",
+            "--color-border-tertiary": "light-dark(rgba(31, 30, 29, 0.15), rgba(222, 220, 209, 0.15))",
+            "--color-border-inverse": "light-dark(rgba(255, 255, 255, 0.3), rgba(20, 20, 19, 0.15))",
+            "--color-border-ghost": "light-dark(rgba(31, 30, 29, 0), rgba(222, 220, 209, 0))",
+            "--color-border-info": "light-dark(rgba(70, 130, 213, 1), rgba(70, 130, 213, 1))",
+            "--color-border-danger": "light-dark(rgba(167, 61, 57, 1), rgba(205, 92, 88, 1))",
+            "--color-border-success": "light-dark(rgba(67, 116, 38, 1), rgba(89, 145, 48, 1))",
+            "--color-border-warning": "light-dark(rgba(128, 92, 31, 1), rgba(168, 120, 41, 1))",
+            "--color-border-disabled": "light-dark(rgba(31, 30, 29, 0.1), rgba(222, 220, 209, 0.1))",
+            "--color-ring-primary": "light-dark(rgba(20, 20, 19, 0.7), rgba(250, 249, 245, 0.7))",
+            "--color-ring-secondary": "light-dark(rgba(61, 61, 58, 0.7), rgba(194, 192, 182, 0.7))",
+            "--color-ring-inverse": "light-dark(rgba(255, 255, 255, 0.7), rgba(20, 20, 19, 0.7))",
+            "--color-ring-info": "light-dark(rgba(50, 102, 173, 0.5), rgba(128, 170, 221, 0.5))",
+            "--color-ring-danger": "light-dark(rgba(167, 61, 57, 0.5), rgba(205, 92, 88, 0.5))",
+            "--color-ring-success": "light-dark(rgba(67, 116, 38, 0.5), rgba(89, 145, 48, 0.5))",
+            "--color-ring-warning": "light-dark(rgba(128, 92, 31, 0.5), rgba(168, 120, 41, 0.5))",
+            "--font-sans": "Anthropic Sans, sans-serif",
+            "--font-mono": "ui-monospace, monospace",
+            "--font-weight-normal": "400",
+            "--font-weight-medium": "500",
+            "--font-weight-semibold": "600",
+            "--font-weight-bold": "700",
+            "--font-text-xs-size": "12px",
+            "--font-text-sm-size": "14px",
+            "--font-text-md-size": "16px",
+            "--font-text-lg-size": "20px",
+            "--font-heading-xs-size": "12px",
+            "--font-heading-sm-size": "14px",
+            "--font-heading-md-size": "16px",
+            "--font-heading-lg-size": "20px",
+            "--font-heading-xl-size": "24px",
+            "--font-heading-2xl-size": "28px",
+            "--font-heading-3xl-size": "36px",
+            "--font-text-xs-line-height": "1.4",
+            "--font-text-sm-line-height": "1.4",
+            "--font-text-md-line-height": "1.4",
+            "--font-text-lg-line-height": "1.25",
+            "--font-heading-xs-line-height": "1.4",
+            "--font-heading-sm-line-height": "1.4",
+            "--font-heading-md-line-height": "1.4",
+            "--font-heading-lg-line-height": "1.25",
+            "--font-heading-xl-line-height": "1.25",
+            "--font-heading-2xl-line-height": "1.1",
+            "--font-heading-3xl-line-height": "1",
+            "--border-radius-xs": "4px",
+            "--border-radius-sm": "6px",
+            "--border-radius-md": "8px",
+            "--border-radius-lg": "10px",
+            "--border-radius-xl": "12px",
+            "--border-radius-full": "9999px",
+            "--border-width-regular": "0.5px",
+            "--shadow-hairline": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            "--shadow-sm": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
+            "--shadow-md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
+            "--shadow-lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
+          },
+          "css": {
+            "fonts": "\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Regular-Static.otf\") format(\"opentype\");\n  font-weight: 400;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-RegularItalic-Static.otf\") format(\"opentype\");\n  font-weight: 400;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Medium-Static.otf\") format(\"opentype\");\n  font-weight: 500;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-MediumItalic-Static.otf\") format(\"opentype\");\n  font-weight: 500;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Semibold-Static.otf\") format(\"opentype\");\n  font-weight: 600;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-SemiboldItalic-Static.otf\") format(\"opentype\");\n  font-weight: 600;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Bold-Static.otf\") format(\"opentype\");\n  font-weight: 700;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-BoldItalic-Static.otf\") format(\"opentype\");\n  font-weight: 700;\n  font-style: italic;\n  font-display: swap;\n}\n"
+          }
+        },
+        "displayMode": "inline",
+        "availableDisplayModes": [
+          "inline",
+          "fullscreen"
+        ],
+        "containerDimensions": {
+          "maxHeight": 5000,
+          "width": 720
+        },
+        "locale": "en-US",
+        "timeZone": "Europe/Paris",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+        "platform": "web",
+        "deviceCapabilities": {
+          "touch": false,
+          "hover": true
+        },
+        "safeAreaInsets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      }
+    },
+    {
+      "id": "context/theme-variables",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "context/light-dark",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "context/theme-fonts",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "tools/proxy-call",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "visibility/app-tool-call-guard",
+      "status": "FAIL",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": "host must reject an app's tools/call for a tool lacking \"app\" visibility",
+      "value": null
+    },
+    {
+      "id": "display/return-resulting-mode",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/sandbox-distinct-origin",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/sandbox-permissions",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-input",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-result",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-input-partial-stop",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "display/no-undeclared-mode",
+      "status": "PASS",
+      "clause": "MUST NOT",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "display/unavailable-returns-current",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-allow-declared",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-no-loosening",
+      "status": "PASS",
+      "clause": "MUST NOT",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-construct-from-domains",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "dimensions/listen-size-changed",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "capabilities/server-passthrough",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "context/context-changed",
+      "status": "NOTRUN",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "links/open-external",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "messages/add-to-conversation",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "visibility/app-tool-hidden",
+      "status": "PASS",
+      "clause": "MUST NOT",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "model-context/provide-future-turns",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": "operator reported the agent did not receive the model context on the next turn",
+      "value": null
+    },
+    {
+      "id": "capabilities/content-modalities",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "sampling/create-message",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": "host does not advertise the sampling capability",
+      "value": null
+    },
+    {
+      "id": "download-file/confirm",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "app-tools/call",
+      "status": "FAIL",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": true,
+      "message": "skipped before the expected host notification arrived",
+      "value": null
+    }
+  ]
+}
