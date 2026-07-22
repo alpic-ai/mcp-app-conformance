@@ -1,0 +1,311 @@
+{
+  "app_name": "Mcp Apps Conformance",
+  "host": "alpic-playground v1.0.0",
+  "capturedAt": "2026-07-22T08:13:22.905404+00:00",
+  "counts": {
+    "PASS": 21,
+    "FAIL": 8
+  },
+  "summary": "21/29 passing",
+  "driven": {
+    "context/context-changed": "auto (emulated prefers-color-scheme: dark)",
+    "links/open-external": "yes",
+    "messages/add-to-conversation": "no",
+    "visibility/app-tool-hidden": "no",
+    "model-context/provide-future-turns": "yes",
+    "sampling/create-message": "auto:FAIL",
+    "download-file/confirm": "auto:FAIL",
+    "app-tools/call": "auto"
+  },
+  "rows": [
+    {
+      "id": "lifecycle/initialize-capabilities",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": {
+        "openLinks": {},
+        "serverTools": {
+          "listChanged": true
+        },
+        "serverResources": {
+          "listChanged": true
+        },
+        "updateModelContext": {
+          "text": {}
+        },
+        "message": {
+          "text": {}
+        }
+      }
+    },
+    {
+      "id": "context/initialize-hostcontext",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": {
+        "theme": "light",
+        "displayMode": "inline",
+        "availableDisplayModes": [
+          "inline",
+          "pip",
+          "fullscreen"
+        ],
+        "containerDimensions": {
+          "maxHeight": 6000,
+          "width": 768
+        },
+        "locale": "en-GB",
+        "platform": "desktop"
+      }
+    },
+    {
+      "id": "context/theme-variables",
+      "status": "FAIL",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": "host provided no style variables",
+      "value": null
+    },
+    {
+      "id": "context/light-dark",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": "host provided no style variables to check for light-dark()",
+      "value": null
+    },
+    {
+      "id": "context/theme-fonts",
+      "status": "FAIL",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": "host provided no custom fonts",
+      "value": null
+    },
+    {
+      "id": "tools/proxy-call",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "visibility/app-tool-call-guard",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "display/return-resulting-mode",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/sandbox-distinct-origin",
+      "status": "FAIL",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": "reading window.top.location (the host) must throw \u2014 host and sandbox must have different origins",
+      "value": null
+    },
+    {
+      "id": "security/sandbox-permissions",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-input",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-result",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "lifecycle/tool-input-partial-stop",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "display/no-undeclared-mode",
+      "status": "PASS",
+      "clause": "MUST NOT",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "display/unavailable-returns-current",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-allow-declared",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-no-loosening",
+      "status": "PASS",
+      "clause": "MUST NOT",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "security/csp-construct-from-domains",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "dimensions/listen-size-changed",
+      "status": "PASS",
+      "clause": "MUST",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "capabilities/server-passthrough",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "context/context-changed",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "links/open-external",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "messages/add-to-conversation",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": "operator reported the ui/message was not added to the conversation",
+      "value": null
+    },
+    {
+      "id": "visibility/app-tool-hidden",
+      "status": "FAIL",
+      "clause": "MUST NOT",
+      "vantage": "host",
+      "manual": true,
+      "message": "operator reported the app-only tool `conformance_probe` was visible to the agent (must be hidden)",
+      "value": null
+    },
+    {
+      "id": "model-context/provide-future-turns",
+      "status": "PASS",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "capabilities/content-modalities",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": false,
+      "message": null,
+      "value": null
+    },
+    {
+      "id": "sampling/create-message",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": "host does not advertise the sampling capability",
+      "value": null
+    },
+    {
+      "id": "download-file/confirm",
+      "status": "FAIL",
+      "clause": "SHOULD",
+      "vantage": "host",
+      "manual": true,
+      "message": "host does not advertise the downloadFile capability",
+      "value": null
+    },
+    {
+      "id": "app-tools/call",
+      "status": "PASS",
+      "clause": "MAY",
+      "vantage": "in-view",
+      "manual": true,
+      "message": null,
+      "value": null
+    }
+  ]
+}

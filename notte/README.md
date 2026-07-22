@@ -24,8 +24,9 @@ The human "Run all" button in the app still runs everything in one pass.
 ## Run
 
 ```bash
-uv run notte/conformance.py --host chatgpt --app-name Conformance
-uv run notte/conformance.py --host claude  --app-name Conformance
+uv run notte/conformance.py --host chatgpt    --app-name Conformance
+uv run notte/conformance.py --host claude     --app-name Conformance
+uv run notte/conformance.py --host playground                          # no login needed
 ```
 
 - **First run (per host):** a Chrome window opens on a fresh profile
@@ -69,6 +70,10 @@ open docs/index.html           # local preview
   Enter); dismisses the cookie banner first. It has **no known conversation
   API**, so `messages`/`model-context`/`app-tool-hidden` are verified by
   scraping the transcript text — weaker than ChatGPT's API check.
+- **Alpic playground** (`/try`): **no login** — the app is pre-connected. Composer
+  is `textarea[name="message"]`. Same-origin frames. Mainly exercises the
+  automatic batch; agent-dependent manual tests (messages, model-context,
+  app-tools) may not apply. Good quick no-auth smoke test of the whole pipeline.
 
 ## What it does per manual test
 

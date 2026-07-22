@@ -202,7 +202,42 @@ CLAUDE = Host(
     commit_message=commit_message_claude,
 )
 
-HOSTS: dict[str, Host] = {CHATGPT.name: CHATGPT, CLAUDE.name: CLAUDE}
+# ── Alpic playground ─────────────────────────────────────────────────
+# A self-contained playground host at /try with the conformance app pre-connected
+# — no login. Frames are same-origin, but the generic app-frame machinery
+# (window.__conformance) drives it fine. Mainly exercises the automatic batch;
+# manual tests that need an agent may not apply here.
+
+
+def send_prompt_playground(page: Page, app_name: str) -> None:
+    page.fill(
+        'textarea[name="message"]',
+        "Run the MCP Apps conformance suite using the run_conformance tool.",
+        timeout=PAGE_LOAD_TIMEOUT_MS,
+    )
+    time.sleep(1)
+    page.keyboard.press("Enter")
+
+
+def dismiss_modal_playground(page: Page) -> None:
+    return  # no cookie/consent banner on the playground
+
+
+def conversation_contains_playground(page: Page, marker: str, timeout_seconds: int = 60, poll: int = 6) -> bool:
+    # No conversation API on the playground; scrape the page text (best-effort).
+    return _poll_marker(page, "(m) => document.body.innerText.includes(m) ? 'found' : 'not-found'", marker, timeout_seconds, poll)
+
+
+PLAYGROUND = Host(
+    name="playground",
+    url="https://mcp-apps-conformance.alpic.live/try",
+    widget_selector="iframe",
+    send_prompt=send_prompt_playground,
+    dismiss_modal=dismiss_modal_playground,
+    conversation_contains=conversation_contains_playground,
+)
+
+HOSTS: dict[str, Host] = {CHATGPT.name: CHATGPT, CLAUDE.name: CLAUDE, PLAYGROUND.name: PLAYGROUND}
 
 
 # ── shared host-agnostic plumbing ────────────────────────────────────
