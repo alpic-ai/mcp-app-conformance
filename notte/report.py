@@ -23,6 +23,7 @@ SPEC_URL = {
     "draft": "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx?plain=1",
 }
 CLAUSE_ORDER = ["MUST", "MUST NOT", "REQUIRED", "SHOULD", "SHOULD NOT", "MAY"]
+HOST_LABEL = {"playground": "alpic-playground"}  # display name per host dir
 STATUS_CLASS = {"PASS": "pass", "FAIL": "fail", "TIMEOUT": "fail", "NOTRUN": "notrun", "": "notrun"}
 
 
@@ -88,7 +89,7 @@ def main() -> int:
     ncol = 1 + len(hosts)
 
     head_cells = "".join(
-        f'<th class="host"><div class="host-name">{html.escape(h)}</div>'
+        f'<th class="host"><div class="host-name">{html.escape(HOST_LABEL.get(h, h))}</div>'
         f'<div class="host-meta">{html.escape(fmt_time(results[h].get("capturedAt")))}</div></th>'
         for h in hosts
     )
