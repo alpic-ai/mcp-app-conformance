@@ -88,11 +88,16 @@ def main() -> int:
     pending = [e for e in catalogue if not e.get("implemented")]
     ncol = 1 + len(hosts)
 
-    head_cells = "".join(
-        f'<th class="host"><div class="host-name">{html.escape(HOST_LABEL.get(h, h))}</div>'
-        f'<div class="host-meta">{html.escape(fmt_time(results[h].get("capturedAt")))}</div></th>'
-        for h in hosts
-    )
+    def host_header(h: str) -> str:
+        rec = ""
+        if (HERE.parent / "docs" / "recordings" / f"{h}.webm").exists():
+            rec = f'<div class="host-meta"><button type="button" class="rec-link" onclick="openRec(\'{h}\')">▶ recording</button></div>'
+        return (
+            f'<th class="host"><div class="host-name">{html.escape(HOST_LABEL.get(h, h))}</div>'
+            f'<div class="host-meta">{html.escape(fmt_time(results[h].get("capturedAt")))}</div>{rec}</th>'
+        )
+
+    head_cells = "".join(host_header(h) for h in hosts)
 
     body = ""
     for clause in CLAUSE_ORDER:
@@ -145,6 +150,7 @@ def main() -> int:
   .sub a {{ color:var(--accent); text-decoration:none; }} .sub a:hover {{ text-decoration:underline; }}
   th.host {{ min-width:110px; }} .host-name {{ font-weight:600; }}
   .host-meta {{ color:var(--muted); font-size:10px; font-weight:400; margin-top:2px; }}
+  .host-meta a {{ color:var(--accent); text-decoration:none; }} .host-meta a:hover {{ text-decoration:underline; }}
   tr.section td {{ background:#f1f3f4; font-weight:700; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#3c4043; position:sticky; left:0; }}
   td.st {{ font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:600; text-align:center; position:relative; }}
   .has-tip {{ cursor:help; }}
@@ -168,6 +174,10 @@ def main() -> int:
   .val-head h2 {{ font-size:14px; margin:0; font-family:ui-monospace,Menlo,monospace; }}
   .val-close {{ border:none; background:transparent; font-size:22px; line-height:1; cursor:pointer; color:var(--muted); }}
   #val-body {{ background:#f6f8fa; padding:12px; border-radius:6px; overflow:auto; font-size:11px; font-family:ui-monospace,Menlo,monospace; max-height:62vh; white-space:pre; margin:0; }}
+  .rec-link {{ border:none; background:transparent; cursor:pointer; color:var(--accent); font-size:10px; padding:0; }} .rec-link:hover {{ text-decoration:underline; }}
+  .rec-dialog {{ border:1px solid var(--line); border-radius:12px; padding:16px; max-width:900px; width:92vw; }}
+  .rec-dialog::backdrop {{ background:rgba(0,0,0,0.5); }}
+  #rec-video {{ width:100%; border-radius:8px; background:#000; display:block; }}
 </style></head><body>
 <h1>MCP Apps Conformance — results</h1>
 <div class="gen">Generated {generated} · hosts: {hostlist} · <a href="how-it-works.html">How it works ↗</a></div>
@@ -179,6 +189,10 @@ def main() -> int:
   <div class="val-head"><h2 id="val-title">value</h2><button type="button" class="val-close" onclick="document.getElementById('val-dialog').close()">×</button></div>
   <pre id="val-body"></pre>
 </dialog>
+<dialog id="rec-dialog" class="rec-dialog">
+  <div class="val-head"><h2 id="rec-title">recording</h2><button type="button" class="val-close" onclick="document.getElementById('rec-dialog').close()">×</button></div>
+  <video id="rec-video" controls preload="metadata"></video>
+</dialog>
 <script>
 const VALUES = {values_js};
 function openVal(k) {{
@@ -186,6 +200,19 @@ function openVal(k) {{
   document.getElementById('val-body').textContent = VALUES[k] || '(no value)';
   document.getElementById('val-dialog').showModal();
 }}
+function openRec(h) {{
+  const v = document.getElementById('rec-video');
+  document.getElementById('rec-title').textContent = h + ' — session recording';
+  v.src = 'recordings/' + h + '.webm';
+  document.getElementById('rec-dialog').showModal();
+  v.play().catch(() => {{}});
+}}
+document.getElementById('rec-dialog').addEventListener('close', () => {{
+  const v = document.getElementById('rec-video');
+  v.pause();
+  v.removeAttribute('src');
+  v.load();
+}});
 </script>
 </body></html>"""
 

@@ -62,6 +62,19 @@ open docs/index.html           # local preview
 - A **"Not yet implemented"** section lists catalogue requirements with no
   runner test yet (clause + vantage + spec link).
 
+### Recordings
+
+Each run records the Playwright session to `docs/recordings/<host>.webm` (WebM,
+overwritten per host so only the latest is kept). The report links it as
+"▶ recording" in the host column. `--no-video` disables recording.
+
+⚠️ **Privacy:** the recording captures the *whole* session on the real host —
+your ChatGPT/Claude account UI and any conversation content. Only the
+**playground** recording is safe to publish; think twice before committing
+ChatGPT/Claude videos to a public repo. Note also that replacing the file keeps
+the working tree small but **git history still retains every committed video**,
+so the repo grows over time (use `--no-video`, or git LFS, if that matters).
+
 ### Host differences
 
 - **ChatGPT**: composer is `#prompt-textarea`, `run @app` uses the mention

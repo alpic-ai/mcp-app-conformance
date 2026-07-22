@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 import time
 from contextlib import contextmanager
@@ -653,11 +654,17 @@ def _result(host: Host, app_name: str, state: dict, driven: dict) -> dict:
 
 
 @contextmanager
-def local_browser(profile_dir: Path) -> Iterator[BrowserContext]:
+def local_browser(profile_dir: Path, video_dir: Path | None = None) -> Iterator[BrowserContext]:
     """A persistent local Chrome profile, driven directly. headless MUST stay
     off: headless Chromium drops cross-origin MessagePort transfers, which
-    breaks the ext-apps init handshake."""
+    breaks the ext-apps init handshake. If `video_dir` is set, the session is
+    recorded (one .webm, finalized on context close)."""
     profile_dir.mkdir(parents=True, exist_ok=True)
+    kwargs: dict = {}
+    if video_dir is not None:
+        video_dir.mkdir(parents=True, exist_ok=True)
+        kwargs["record_video_dir"] = str(video_dir)
+        kwargs["record_video_size"] = {"width": 1280, "height": 720}
     with sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(
             str(profile_dir),
@@ -672,6 +679,7 @@ def local_browser(profile_dir: Path) -> Iterator[BrowserContext]:
                 "--disable-popup-blocking",
                 "--window-size=1440,1000",
             ],
+            **kwargs,
         )
         try:
             yield context
@@ -686,6 +694,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--app-name", default="Conformance", help="the app name as connected in the account")
     p.add_argument("--profile-dir", type=Path, default=None, help="persistent Chrome profile dir")
     p.add_argument("--out", type=Path, default=None, help="output dir for results.json")
+    p.add_argument("--no-video", action="store_true", help="don't record the session (recording is on by default)")
     return p.parse_args(argv)
 
 
@@ -698,13 +707,29 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = args.out or script_dir / "out" / args.host
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    video_tmp = None if args.no_video else out_dir / ".video"  # Playwright writes a random .webm here
     result: dict | None = None
-    with local_browser(profile_dir) as context:
+    with local_browser(profile_dir, video_tmp) as context:
         page = context.pages[0] if context.pages else context.new_page()
         try:
             result = run_suite(page, host, args.app_name)
         except Exception as exc:
             print(f"[conformance] run failed: {exc}", flush=True)
+
+    # Keep only the main session recording per host (one .webm), tracked +
+    # Pages-served. Playwright records one video PER PAGE, so a test that opens a
+    # tab (e.g. open-external → modelcontextprotocol.io) leaves a short extra
+    # video — pick the LARGEST, which is the multi-minute main session, not a tab.
+    vids = sorted(video_tmp.glob("*.webm")) if video_tmp and video_tmp.exists() else []
+    if vids:
+        main = max(vids, key=lambda f: f.stat().st_size)
+        dest = script_dir.parent / "docs" / "recordings" / f"{args.host}.webm"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.unlink(missing_ok=True)
+        shutil.move(str(main), str(dest))
+        print(f"[conformance] recording: {dest} ({len(vids)} tab(s) recorded, kept the largest)", flush=True)
+    if video_tmp:
+        shutil.rmtree(video_tmp, ignore_errors=True)  # drops the secondary-tab videos
 
     if result is None:
         print("[conformance] no result produced", flush=True)
