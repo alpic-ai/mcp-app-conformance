@@ -122,7 +122,7 @@ def main() -> int:
            --fail:#c5221f; --fail-bg:#fce8e6; --notrun:#80868b; --notrun-bg:#f1f3f4;
            --skip:#b06000; --skip-bg:#fef7e0; --accent:#1a73e8; }}
   * {{ box-sizing:border-box; }}
-  body {{ margin:0; padding:24px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#171a1f; }}
+  body {{ margin:0 auto; max-width:1040px; padding:32px 28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#171a1f; }}
   h1 {{ font-size:18px; margin:0 0 2px; }}
   h2 {{ font-size:15px; margin:28px 0 8px; }}
   .gen {{ color:var(--muted); font-size:12px; margin-bottom:6px; }}
