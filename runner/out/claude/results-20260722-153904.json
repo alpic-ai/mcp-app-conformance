@@ -1,0 +1,512 @@
+{
+  "host": "claude",
+  "appName": "MCP Apps Conformance",
+  "capturedAt": "2026-07-22T15:39:04.639Z",
+  "counts": {
+    "PASS": 28,
+    "FAIL": 5,
+    "TIMEOUT": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "results": [
+    {
+      "id": "lifecycle/initialize-capabilities",
+      "name": "ui/initialize returns hostCapabilities",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "value": {
+        "openLinks": {},
+        "downloadFile": {},
+        "serverTools": {
+          "listChanged": true
+        },
+        "serverResources": {
+          "listChanged": true
+        },
+        "logging": {},
+        "sandbox": {
+          "csp": {
+            "connectDomains": [
+              "https://modelcontextprotocol.io"
+            ]
+          }
+        },
+        "updateModelContext": {
+          "text": {},
+          "image": {}
+        },
+        "message": {
+          "text": {}
+        }
+      },
+      "durationMs": 3
+    },
+    {
+      "id": "context/initialize-hostcontext",
+      "name": "ui/initialize result carries hostContext",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD, not MUST — a host may legitimately omit hostContext, which would FAIL here. We assert presence; a richer version would only validate shape when present.",
+      "value": {
+        "toolInfo": {
+          "id": "toolu_01SpLrwcUkfmjKKxriDSsfLb",
+          "tool": {
+            "name": "run_conformance",
+            "description": "Run the MCP Apps conformance test suite against this host.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "execution": {
+              "taskSupport": "forbidden"
+            },
+            "_meta": {
+              "ui": {
+                "resourceUri": "ui://conformance/runner",
+                "visibility": [
+                  "model",
+                  "app"
+                ]
+              },
+              "ui/resourceUri": "ui://conformance/runner"
+            }
+          }
+        },
+        "theme": "light",
+        "styles": {
+          "variables": {
+            "--color-background-primary": "light-dark(rgba(255, 255, 255, 1), rgba(48, 48, 46, 1))",
+            "--color-background-secondary": "light-dark(rgba(245, 244, 237, 1), rgba(38, 38, 36, 1))",
+            "--color-background-tertiary": "light-dark(rgba(250, 249, 245, 1), rgba(20, 20, 19, 1))",
+            "--color-background-inverse": "light-dark(rgba(20, 20, 19, 1), rgba(250, 249, 245, 1))",
+            "--color-background-ghost": "light-dark(rgba(255, 255, 255, 0), rgba(48, 48, 46, 0))",
+            "--color-background-info": "light-dark(rgba(214, 228, 246, 1), rgba(37, 62, 95, 1))",
+            "--color-background-danger": "light-dark(rgba(247, 236, 236, 1), rgba(96, 42, 40, 1))",
+            "--color-background-success": "light-dark(rgba(233, 241, 220, 1), rgba(27, 70, 20, 1))",
+            "--color-background-warning": "light-dark(rgba(246, 238, 223, 1), rgba(72, 58, 15, 1))",
+            "--color-background-disabled": "light-dark(rgba(255, 255, 255, 0.5), rgba(48, 48, 46, 0.5))",
+            "--color-text-primary": "light-dark(rgba(20, 20, 19, 1), rgba(250, 249, 245, 1))",
+            "--color-text-secondary": "light-dark(rgba(61, 61, 58, 1), rgba(194, 192, 182, 1))",
+            "--color-text-tertiary": "light-dark(rgba(115, 114, 108, 1), rgba(156, 154, 146, 1))",
+            "--color-text-inverse": "light-dark(rgba(255, 255, 255, 1), rgba(20, 20, 19, 1))",
+            "--color-text-ghost": "light-dark(rgba(115, 114, 108, 0.5), rgba(156, 154, 146, 0.5))",
+            "--color-text-info": "light-dark(rgba(50, 102, 173, 1), rgba(128, 170, 221, 1))",
+            "--color-text-danger": "light-dark(rgba(127, 44, 40, 1), rgba(238, 136, 132, 1))",
+            "--color-text-success": "light-dark(rgba(38, 91, 25, 1), rgba(122, 185, 72, 1))",
+            "--color-text-warning": "light-dark(rgba(90, 72, 21, 1), rgba(209, 160, 65, 1))",
+            "--color-text-disabled": "light-dark(rgba(20, 20, 19, 0.5), rgba(250, 249, 245, 0.5))",
+            "--color-border-primary": "light-dark(rgba(31, 30, 29, 0.4), rgba(222, 220, 209, 0.4))",
+            "--color-border-secondary": "light-dark(rgba(31, 30, 29, 0.3), rgba(222, 220, 209, 0.3))",
+            "--color-border-tertiary": "light-dark(rgba(31, 30, 29, 0.15), rgba(222, 220, 209, 0.15))",
+            "--color-border-inverse": "light-dark(rgba(255, 255, 255, 0.3), rgba(20, 20, 19, 0.15))",
+            "--color-border-ghost": "light-dark(rgba(31, 30, 29, 0), rgba(222, 220, 209, 0))",
+            "--color-border-info": "light-dark(rgba(70, 130, 213, 1), rgba(70, 130, 213, 1))",
+            "--color-border-danger": "light-dark(rgba(167, 61, 57, 1), rgba(205, 92, 88, 1))",
+            "--color-border-success": "light-dark(rgba(67, 116, 38, 1), rgba(89, 145, 48, 1))",
+            "--color-border-warning": "light-dark(rgba(128, 92, 31, 1), rgba(168, 120, 41, 1))",
+            "--color-border-disabled": "light-dark(rgba(31, 30, 29, 0.1), rgba(222, 220, 209, 0.1))",
+            "--color-ring-primary": "light-dark(rgba(20, 20, 19, 0.7), rgba(250, 249, 245, 0.7))",
+            "--color-ring-secondary": "light-dark(rgba(61, 61, 58, 0.7), rgba(194, 192, 182, 0.7))",
+            "--color-ring-inverse": "light-dark(rgba(255, 255, 255, 0.7), rgba(20, 20, 19, 0.7))",
+            "--color-ring-info": "light-dark(rgba(50, 102, 173, 0.5), rgba(128, 170, 221, 0.5))",
+            "--color-ring-danger": "light-dark(rgba(167, 61, 57, 0.5), rgba(205, 92, 88, 0.5))",
+            "--color-ring-success": "light-dark(rgba(67, 116, 38, 0.5), rgba(89, 145, 48, 0.5))",
+            "--color-ring-warning": "light-dark(rgba(128, 92, 31, 0.5), rgba(168, 120, 41, 0.5))",
+            "--font-sans": "Anthropic Sans, sans-serif",
+            "--font-mono": "ui-monospace, monospace",
+            "--font-weight-normal": "400",
+            "--font-weight-medium": "500",
+            "--font-weight-semibold": "600",
+            "--font-weight-bold": "700",
+            "--font-text-xs-size": "12px",
+            "--font-text-sm-size": "14px",
+            "--font-text-md-size": "16px",
+            "--font-text-lg-size": "20px",
+            "--font-heading-xs-size": "12px",
+            "--font-heading-sm-size": "14px",
+            "--font-heading-md-size": "16px",
+            "--font-heading-lg-size": "20px",
+            "--font-heading-xl-size": "24px",
+            "--font-heading-2xl-size": "28px",
+            "--font-heading-3xl-size": "36px",
+            "--font-text-xs-line-height": "1.4",
+            "--font-text-sm-line-height": "1.4",
+            "--font-text-md-line-height": "1.4",
+            "--font-text-lg-line-height": "1.25",
+            "--font-heading-xs-line-height": "1.4",
+            "--font-heading-sm-line-height": "1.4",
+            "--font-heading-md-line-height": "1.4",
+            "--font-heading-lg-line-height": "1.25",
+            "--font-heading-xl-line-height": "1.25",
+            "--font-heading-2xl-line-height": "1.1",
+            "--font-heading-3xl-line-height": "1",
+            "--border-radius-xs": "4px",
+            "--border-radius-sm": "6px",
+            "--border-radius-md": "8px",
+            "--border-radius-lg": "10px",
+            "--border-radius-xl": "12px",
+            "--border-radius-full": "9999px",
+            "--border-width-regular": "0.5px",
+            "--shadow-hairline": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            "--shadow-sm": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)",
+            "--shadow-md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
+            "--shadow-lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
+          },
+          "css": {
+            "fonts": "\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Regular-Static.otf\") format(\"opentype\");\n  font-weight: 400;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-RegularItalic-Static.otf\") format(\"opentype\");\n  font-weight: 400;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Medium-Static.otf\") format(\"opentype\");\n  font-weight: 500;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-MediumItalic-Static.otf\") format(\"opentype\");\n  font-weight: 500;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Semibold-Static.otf\") format(\"opentype\");\n  font-weight: 600;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-SemiboldItalic-Static.otf\") format(\"opentype\");\n  font-weight: 600;\n  font-style: italic;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-Bold-Static.otf\") format(\"opentype\");\n  font-weight: 700;\n  font-style: normal;\n  font-display: swap;\n}\n@font-face {\n  font-family: \"Anthropic Sans\";\n  src: url(\"https://assets.claude.ai/Fonts/AnthropicSans-Text-BoldItalic-Static.otf\") format(\"opentype\");\n  font-weight: 700;\n  font-style: italic;\n  font-display: swap;\n}\n"
+          }
+        },
+        "displayMode": "inline",
+        "availableDisplayModes": [
+          "inline",
+          "fullscreen"
+        ],
+        "containerDimensions": {
+          "maxHeight": 5000,
+          "width": 720
+        },
+        "locale": "en-US",
+        "timeZone": "Europe/Paris",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+        "platform": "web",
+        "deviceCapabilities": {
+          "touch": false,
+          "hover": true
+        },
+        "safeAreaInsets": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        }
+      },
+      "durationMs": 1
+    },
+    {
+      "id": "context/theme-variables",
+      "name": "host provides theme CSS variables (styles.variables)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Optional (MAY). Signal only — inspect the exact values in the Inspector panel.",
+      "durationMs": 1
+    },
+    {
+      "id": "context/light-dark",
+      "name": "theme-aware values use CSS light-dark()",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD, and only observable when the host passes style variables. Non-color variables (radii, shadows) legitimately don't use light-dark(), so this is a signal, not a hard fail.",
+      "durationMs": 1
+    },
+    {
+      "id": "context/theme-fonts",
+      "name": "host provides custom fonts (styles.css.fonts)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Optional (MAY). Signal only — inspect the font CSS in the Inspector panel.",
+      "durationMs": 2
+    },
+    {
+      "id": "tools/proxy-call",
+      "name": "host proxies tools/call to the server",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "The server also sees this call directly, so it can be corroborated server-side.",
+      "durationMs": 1229
+    },
+    {
+      "id": "visibility/app-tool-call-guard",
+      "name": "host rejects app call to a model-only tool",
+      "status": "FAIL",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Covers the app→tool direction only. The complementary `visibility/app-tool-hidden` (tool absent from the *agent's* list) needs the agent vantage and isn't measurable here.",
+      "message": "host must reject an app's tools/call for a tool lacking \"app\" visibility",
+      "durationMs": 492
+    },
+    {
+      "id": "display/return-resulting-mode",
+      "name": "ui/request-display-mode returns the resulting mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Requests the current mode ('inline') to avoid a disruptive change, but a host may still re-render as a side effect.",
+      "durationMs": 2
+    },
+    {
+      "id": "security/sandbox-distinct-origin",
+      "name": "host and sandbox have different origins",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Host ≠ Sandbox. The View runs same-origin inside the Sandbox, so this checks window.top (the host), not window.parent (the sandbox). Opened top-level (no host), window.top === self and this FAILs — correct, it's not in a host.",
+      "durationMs": 1
+    },
+    {
+      "id": "security/sandbox-permissions",
+      "name": "sandbox grants allow-scripts + allow-same-origin",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Inferred: scripts executing ⇒ allow-scripts; non-opaque window.origin ⇒ allow-same-origin.",
+      "durationMs": 1
+    },
+    {
+      "id": "lifecycle/tool-input",
+      "name": "host sends tool-input after initialize",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Captured via the ontoolinput callback (registered before connect). TIMEOUT means the host never sent it for the launching tool.",
+      "durationMs": 1
+    },
+    {
+      "id": "lifecycle/tool-result",
+      "name": "host sends tool-result on completion",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Captured via ontoolresult. Some hosts may not replay tool-result for the tool that launched the view — TIMEOUT flags that.",
+      "durationMs": 1
+    },
+    {
+      "id": "lifecycle/tool-input-partial-stop",
+      "name": "host stops tool-input-partial once tool-input is sent",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Only catches a violation if the host actually streams partials; our launcher tool has no streamable args, so this usually passes vacuously (0 partials observed).",
+      "durationMs": 302
+    },
+    {
+      "id": "display/no-undeclared-mode",
+      "name": "host does not switch to an undeclared display mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST NOT",
+      "caveat": "We declare only inline/fullscreen in appCapabilities, then request the undeclared 'pip'.",
+      "durationMs": 2
+    },
+    {
+      "id": "display/unavailable-returns-current",
+      "name": "unavailable mode request returns the current mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD — assumes the current mode is stable between reading hostContext and the request.",
+      "durationMs": 1
+    },
+    {
+      "id": "security/csp-allow-declared",
+      "name": "declared connectDomains origin is allowed",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "The runner declares connectDomains: [\"https://modelcontextprotocol.io/\"]. ⚠️ a network failure also reads as \"not allowed\", so the origin must be reachable.",
+      "durationMs": 152
+    },
+    {
+      "id": "security/csp-no-loosening",
+      "name": "undeclared origin stays blocked when a CSP is declared",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST NOT",
+      "caveat": "Backed by csp-allow-declared as the positive control: the declared origin works, so blocking this one is genuinely the CSP, not a blanket fetch failure.",
+      "durationMs": 1
+    },
+    {
+      "id": "security/csp-construct-from-domains",
+      "name": "host constructs the CSP from the declared domains",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Reads the applied CSP via a <meta> tag or the securitypolicyviolation event's originalPolicy. ⚠️ if the host delivers CSP only by HTTP header and no violation fires (or originalPolicy is redacted), it can't be read.",
+      "durationMs": 1
+    },
+    {
+      "id": "dimensions/listen-size-changed",
+      "name": "host resizes the iframe on size-changed (flexible mode)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Flexible mode only (returns vacuously if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
+      "durationMs": 31
+    },
+    {
+      "id": "capabilities/server-passthrough",
+      "name": "host forwards resources/list from the view to the server",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources.",
+      "durationMs": 316
+    },
+    {
+      "id": "capabilities/content-modalities",
+      "name": "host declares content-block modalities for message / update-model-context",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Draft (specification/draft). Signal only — reports the SupportedContentBlockModalities the host advertises.",
+      "durationMs": 1
+    },
+    {
+      "id": "security/sandbox-proxy-required",
+      "name": "the View is wrapped in an intermediate sandbox proxy",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Paired with sandbox-distinct-origin (Host != Sandbox): window.parent (the sandbox) != window.top (the host) proves an intermediate proxy frame. Opened top-level, window.top === self and this FAILs — correct, it's not in a host.",
+      "durationMs": 1
+    },
+    {
+      "id": "context/context-changed",
+      "name": "host notifies the view when the theme changes",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": true,
+      "clause": "MAY",
+      "caveat": "The Runner toggles the host theme and the view resolves on the hostcontextchanged notification. SKIP if the host doesn't emit it (e.g. theme pinned, not following the OS).",
+      "durationMs": 139
+    },
+    {
+      "id": "links/open-external",
+      "name": "ui/open-link opens the URL",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Host-vantage: the sandboxed view can't see the host open a tab, so the Runner triggers ui/open-link and verifies a tab opened (accepting a consent dialog if shown; some hosts open with none).",
+      "durationMs": 1009
+    },
+    {
+      "id": "messages/add-to-conversation",
+      "name": "ui/message is added to the conversation",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Host-vantage: the view can't read the host's conversation, so the Runner confirms the marker appeared (some hosts draft into the composer — commitDraftedMessage sends it).",
+      "durationMs": 6755
+    },
+    {
+      "id": "visibility/app-tool-hidden",
+      "name": "host hides app-only tools from the agent",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "MUST NOT",
+      "caveat": "`conformance_probe` is app-only (visibility [\"app\"]) so it must not be in the model-facing tools/list. Uses the desktop-host tool-list affordance if available, else the agent's own (truthful) enumeration.",
+      "durationMs": 54743
+    },
+    {
+      "id": "model-context/provide-future-turns",
+      "name": "ui/update-model-context reaches the model next turn",
+      "status": "FAIL",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Multi-turn, host-vantage: seeds ui/update-model-context then asks the agent to recall it; confirms the host fed the context to the model on the following turn.",
+      "message": "the model did not receive the seeded context on the next turn",
+      "durationMs": 126953
+    },
+    {
+      "id": "sampling/create-message",
+      "name": "sampling/createMessage returns a completion",
+      "status": "FAIL",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Draft. Capability-gated. The host has full discretion (model selection, rate limiting, user approval); the Runner triggers the call, may approve it, and confirms the reply.",
+      "message": "host does not advertise the sampling capability",
+      "durationMs": 18
+    },
+    {
+      "id": "download-file/confirm",
+      "name": "ui/download-file downloads a file",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Draft. Host-vantage: the download and its confirmation dialog occur outside the sandboxed iframe, so the Runner confirms.",
+      "durationMs": 566
+    },
+    {
+      "id": "app-tools/call",
+      "name": "host calls an app-registered tool",
+      "status": "FAIL",
+      "vantage": "in-view",
+      "manual": true,
+      "clause": "MAY",
+      "caveat": "Draft (App-Provided Tools). Requires the host to expose app-registered tools to the agent; the Runner asks the agent to call it and the harness detects the callback.",
+      "message": "the agent did not call the app-registered tool conformance_ping",
+      "durationMs": 31818
+    },
+    {
+      "id": "security/iframe-sandboxed",
+      "name": "host renders the View in a sandboxed iframe",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "MUST",
+      "caveat": "Operator-read: the sandboxed View's content is cross-origin, but the <iframe> element (and its sandbox attribute) lives in the host document and is readable. Asserts the host uses at least one sandboxed iframe.",
+      "value": {
+        "total": 3,
+        "sandboxed": 2,
+        "firstSandbox": "allow-scripts allow-same-origin allow-forms"
+      },
+      "durationMs": 35
+    },
+    {
+      "id": "model-context/last-wins",
+      "name": "only the last of several model-context updates reaches the model",
+      "status": "FAIL",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Sends two updates before the next user message; the reply should carry the fresh code, not the stale one. Weak if the agent doesn't echo the code verbatim.",
+      "message": "the agent did not receive the last model-context update",
+      "durationMs": 126982
+    },
+    {
+      "id": "security/csp-audit-log",
+      "name": "host logs the CSP configuration for security review",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Operator-observable only: scans the browser console for a logged CSP; a host that logs server-side (not the console) reads as a fail here.",
+      "value": "Unrecognized Content-Security-Policy directive 'webrtc'.",
+      "durationMs": 45
+    }
+  ]
+}

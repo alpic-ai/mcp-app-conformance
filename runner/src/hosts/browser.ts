@@ -13,6 +13,7 @@ export abstract class BrowserHost implements Host {
 	private context!: BrowserContext;
 	private page!: Page;
 	private recordVideoDir?: string;
+	private consoleLines: string[] = [];
 
 	protected abstract sendPrompt(page: Page, appName: string): Promise<void>;
 	protected abstract dismissModal(page: Page): Promise<void>;
@@ -83,6 +84,38 @@ export abstract class BrowserHost implements Host {
 		return { ok: false };
 	}
 
+	// Read the host page's <iframe> elements — their attributes are readable even
+	// though the frames' content is cross-origin. `document` has no type here (the
+	// runner tsconfig omits the DOM lib), hence the cast.
+	async inspectFrame(): Promise<CapabilityResult> {
+		const value = await this.page.evaluate(() => {
+			const d = (globalThis as any).document;
+			const frames = Array.from(d.querySelectorAll("iframe")) as any[];
+			const sandboxed = frames.filter((f) => f.hasAttribute("sandbox"));
+			return {
+				total: frames.length,
+				sandboxed: sandboxed.length,
+				firstSandbox: sandboxed[0]?.getAttribute("sandbox") ?? null,
+			};
+		});
+		return { ok: true, value };
+	}
+
+	// Scan the buffered host console (captured since launch) for `pattern`.
+	async readConsole(
+		pattern: string,
+		timeoutMs: number,
+	): Promise<CapabilityResult> {
+		const re = new RegExp(pattern, "i");
+		const deadline = Date.now() + timeoutMs;
+		for (;;) {
+			const hit = this.consoleLines.find((l) => re.test(l));
+			if (hit) return { ok: true, value: hit };
+			if (Date.now() >= deadline) return { ok: false };
+			await sleep(500);
+		}
+	}
+
 	async conversationContains(
 		marker: string,
 		timeoutMs: number,
@@ -122,6 +155,7 @@ export abstract class BrowserHost implements Host {
 		});
 		const pages = this.context.pages();
 		this.page = pages.length ? pages[0] : await this.context.newPage();
+		this.page.on("console", (m) => this.consoleLines.push(m.text()));
 	}
 
 	private bridge(): SuiteBridge {

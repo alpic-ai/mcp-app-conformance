@@ -71,6 +71,10 @@ export class Runner {
         return h.toggleTheme?.(req.to) ?? Promise.resolve(unsupported());
       case "readModelToolList":
         return h.readModelToolList?.() ?? Promise.resolve(unsupported());
+      case "inspectFrame":
+        return h.inspectFrame?.() ?? Promise.resolve(unsupported());
+      case "readConsole":
+        return h.readConsole?.(req.pattern, req.timeoutMs) ?? Promise.resolve(unsupported());
       case "resetIsolation":
         return h.resetBetweenTests
           ? h.resetBetweenTests().then(() => ({ ok: true }))

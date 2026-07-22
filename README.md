@@ -41,7 +41,7 @@ npm run report                          # refresh docs/index.html from the lates
 - A persistent Chrome profile per host lives in `runner/.profiles/<host>` (gitignored); results in `runner/out/<host>/results-<ts>.json`; a session recording in `docs/recordings/<host>.webm` (`--no-video` to disable).
 - **`headless` stays off by design** — headless Chromium drops cross-origin `MessagePort` transfers and breaks the ext-apps init handshake.
 
-**Status:** 29 of 56 host requirements implemented — `in-view` automatic checks plus interactive `· manual` ones (open-link, download, sampling, ui/message, model-context, app-tool visibility, theme change).
+**Status:** 33 of 56 host requirements implemented — `in-view` automatic checks plus interactive `· manual` ones (open-link, download, sampling, ui/message, model-context, app-tool visibility, theme change) and operator checks (iframe sandboxing, CSP audit log).
 
 ## Documentation
 

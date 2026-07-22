@@ -23,5 +23,7 @@ export interface Host {
   conversationContains?(marker: string, timeoutMs: number): Promise<CapabilityResult>;
   toggleTheme?(to: "light" | "dark"): Promise<CapabilityResult>;
   readModelToolList?(): Promise<CapabilityResult>;
+  inspectFrame?(): Promise<CapabilityResult>;
+  readConsole?(pattern: string, timeoutMs: number): Promise<CapabilityResult>;
   resetBetweenTests?(): Promise<void>;
 }
