@@ -4,8 +4,7 @@ dist/
 .DS_Store
 
 # conformance driver (local)
-notte/.profiles/
-notte/__pycache__/
+runner/.profiles/
 
 .claude
 .conductor

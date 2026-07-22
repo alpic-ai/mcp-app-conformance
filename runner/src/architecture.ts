@@ -1,0 +1,174 @@
+/**
+ * Generate docs/architecture.html — explains the Host / Runner / TestSuite
+ * design and the concepts a new host (VSCode, Goose) implementer needs.
+ *
+ *   tsx runner/src/architecture.ts
+ */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const DOCS = join(HERE, "..", "..", "docs");
+
+const DIAGRAM = `                 in the iframe            external process (a "Host")
+              ┌────────────────────┐      ┌──────────────────────────────┐
+   asserts →  │      TestSuite      │      │           Runner             │
+              │  owns test defs +   │      │  generic dispatch loop:      │
+              │  MCP-app comms      │      │  poll → dispatch → resolve   │
+              │                     │      │            │                 │
+              │  window             │◀─────┤  SuiteBridge (frame.evaluate │
+              │  .__mcpConformance  │─────▶│    for a browser host)       │
+              │  listTests/start/   │ poll │            │                 │
+              │  poll/resolve       │      │            ▼                 │
+              └─────────┬───────────┘      │   Host capability methods    │
+                        │                  │  clickTrigger / confirmDialog│
+              ext-apps App               │  conversationContains /      │
+              (PostMessage bridge)         │  toggleTheme / …             │
+                        │                  └──────────────┬───────────────┘
+                        ▼                                 │ real clicks, DOM,
+              ┌────────────────────┐                      │ conversation API
+              │  the chat host      │◀─────────────────────┘
+              │  (ChatGPT / Claude  │
+              │   / a desktop app)  │
+              └─────────┬───────────┘
+                        │ MCP
+                        ▼
+              ┌────────────────────┐
+              │   MCP server        │
+              └────────────────────┘`;
+
+const PROTOCOL = `// shared/protocol.ts — the one contract both sides import as source
+export type CapabilityRequest =
+  | { kind: "clickTrigger"; commitDraftedMessage?: boolean }   // real cross-origin click (user activation)
+  | { kind: "confirmDialog"; dialog: "open-link" | "download" | "sampling" }
+  | { kind: "conversationContains"; marker: string; timeoutMs: number }
+  | { kind: "toggleTheme"; to: "light" | "dark" }
+  | { kind: "readModelToolList" }        // optional desktop-host affordance
+  | { kind: "resetIsolation" };          // suite emits this before each manual test
+
+export interface CapabilityResult {
+  ok: boolean; value?: unknown; error?: string;
+  unsupported?: boolean;                 // host lacks the capability → test skips / falls back
+}`;
+
+const FALLBACK = `// visibility/app-tool-hidden — capability-or-fallback
+const direct = await t.hostOptional({ kind: "readModelToolList" });
+if (!direct.unsupported) {               // a desktop host that can introspect the model's tools
+  t.assert(!(direct.value as string[]).includes("conformance_probe"), "hidden tool leaked");
+  return;
+}
+// browser hosts don't expose that — fall back to asking the agent and scanning the conversation
+t.bindTrigger(() => t.app.sendMessage({ role: "user", content: [{ type: "text", text: ASK }] }));
+await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+const r = await t.host({ kind: "conversationContains", marker: "conformance_probe", timeoutMs: 45_000 });
+t.assert(!r.ok, "hidden tool name surfaced in the conversation");`;
+
+const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP Apps Conformance — architecture</title>
+<style>
+  :root { --line:#e6e8ec; --muted:#5b6573; --accent:#1a73e8; --ink:#171a1f; --bg:#fff; --code:#0b1020; }
+  * { box-sizing:border-box; }
+  body { margin:0 auto; max-width:1040px; padding:32px 28px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); line-height:1.55; }
+  a { color:var(--accent); }
+  a.nav { text-decoration:none; font-size:13px; margin-right:16px; }
+  h1 { font-size:22px; margin:10px 0 4px; }
+  h2 { font-size:16px; margin:34px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  h3 { font-size:14px; margin:20px 0 2px; }
+  p { margin:8px 0; }
+  .lede { color:var(--muted); font-size:14px; }
+  .muted { color:var(--muted); font-size:13px; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; background:#eef1f4; padding:1px 5px; border-radius:4px; }
+  pre { background:var(--code); color:#e7ecf3; border-radius:10px; padding:16px 18px; overflow:auto; font-size:12px; line-height:1.5; }
+  pre.diagram { background:#f6f8fa; color:#2c333d; border:1px solid var(--line); font-size:11.5px; line-height:1.35; }
+  .card { background:#f6f8fa; border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:10px 0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .grid h3 { margin-top:0; }
+  .grid .card p { font-size:13px; margin:6px 0 0; color:var(--muted); }
+  table { border-collapse:collapse; width:100%; font-size:13px; margin:8px 0; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:#f6f8fa; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#3c4043; }
+  .tag { font-size:10px; color:#8250df; background:#f3eefc; border-radius:5px; padding:1px 6px; }
+  @media (max-width:720px){ .grid{ grid-template-columns:1fr; } }
+</style></head><body>
+<div><a class="nav" href="index.html">← Results</a><a class="nav" href="how-it-works.html">How it works</a></div>
+<h1>Architecture: Host / Runner / TestSuite</h1>
+<p class="lede">How the conformance harness is factored so any host — a web chat client today,
+a desktop app like VSCode or Goose tomorrow — can run the same suite. All the
+platform-specific code lives behind one <code>Host</code> interface.</p>
+
+<h2>Three objects</h2>
+<div class="grid">
+  <div class="card"><h3>TestSuite</h3><p>Runs <em>in the iframe</em>. Owns the test
+  definitions and the MCP-app communication (the ext-apps <code>App</code>). A test
+  emits typed capability requests, awaits the results, and asserts.</p></div>
+  <div class="card"><h3>Runner</h3><p>Platform-agnostic. Lists tests, then pumps
+  each request the suite parks to the Host and feeds the result back. A generic
+  dispatcher — <strong>no per-test logic</strong>.</p></div>
+  <div class="card"><h3>Host</h3><p>The only platform-specific piece. Opens the app,
+  prompts the agent so the suite renders, exposes one method per capability.
+  <code>BrowserHost</code> (Playwright) today; desktop hosts drop in later.</p></div>
+</div>
+<pre class="diagram">${DIAGRAM}</pre>
+
+<h2>The typed capability protocol</h2>
+<p>The protocol is deliberately <strong>primitive</strong> — one variant per thing a
+host can physically do. The <em>test</em> carries the meaning (e.g. "the tool must
+stay hidden" is a test that negates a <code>conversationContains</code> result, not a
+dedicated request kind).</p>
+<pre>${PROTOCOL}</pre>
+
+<h2>Pull model: the suite pulls, the Runner polls</h2>
+<p>A sandboxed, nested, cross-origin iframe can't reliably <em>push</em> a message out
+(nested cross-origin <code>postMessage</code> drops), but the Runner can always reach
+<em>in</em> via <code>frame.evaluate</code>. So the direction is fixed: a test
+<code>await</code>s <code>t.host(req)</code>, which parks <code>req</code> in a single
+pending slot; the Runner <code>poll()</code>s that slot, services the request against
+the Host, and calls <code>resolve(result)</code> to unblock the test.</p>
+<div class="card muted">The suite installs one object at
+<code>window.__mcpConformance</code> with <code>listTests()</code> ·
+<code>start(filter?)</code> · <code>poll()</code> · <code>resolve(result)</code>.
+A desktop host swaps <code>frame.evaluate</code> for its own transport (IPC / a
+WebSocket to the app process) behind the same <code>SuiteBridge</code> interface —
+that is the entire drop-in seam. The same pending slot also backs the in-iframe
+yes/no/skip buttons, so the suite runs with no driver at all (a human answers).</div>
+
+<h2>Optional capabilities &amp; fallback</h2>
+<p>Only <code>setup()</code> and <code>teardown()</code> are mandatory on a
+<code>Host</code>; every capability method is optional. An absent method resolves to
+<code>{ unsupported: true }</code>. In the suite:</p>
+<ul class="muted">
+  <li><code>t.host(req)</code> — <strong>auto-skips</strong> the test if the capability
+  is unsupported ("I need this or I can't run here").</li>
+  <li><code>t.hostOptional(req)</code> — returns the raw result so the test can
+  <strong>fall back</strong> to another path.</li>
+</ul>
+<pre>${FALLBACK}</pre>
+
+<h2>Pluggable hosts</h2>
+<p>The three chat products differ in behavior — how you enter a prompt, dismiss a
+modal, verify a conversation turn, commit a drafted message — and in which
+capabilities they support. So they are subclasses of a shared
+<code>BrowserHost</code>, not config rows:</p>
+<table>
+  <thead><tr><th>Host</th><th>Prompt entry</th><th>Verify a turn</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>ChatGPTBrowserHost</td><td><code>#prompt-textarea</code>, mention picker</td><td>backend conversation API</td><td>sends ui/message directly</td></tr>
+    <tr><td>ClaudeBrowserHost</td><td>ProseMirror <code>contenteditable</code></td><td>scan transcript text</td><td>drafts ui/message → Send</td></tr>
+    <tr><td>AlpicPlaygroundBrowserHost</td><td><code>textarea[name=message]</code></td><td>scan transcript text</td><td>no login</td></tr>
+  </tbody>
+</table>
+<p class="muted"><code>VSCodeHost</code> / <code>GooseHost</code> would be peer
+<code>Host</code> implementations — not <code>BrowserHost</code> subclasses — providing
+their own <code>setup()</code>/<code>SuiteBridge</code> transport and whichever
+capabilities they can (a desktop host may implement <code>readModelToolList</code>
+that browser hosts can't). Anything a host can't do is simply <span class="tag">unsupported</span>,
+and those tests skip. Where the browser driver clicks real product UI, it necessarily
+overfits per-host DOM — see <a href="how-it-works.html">How it works</a>.</p>
+</body></html>`;
+
+mkdirSync(DOCS, { recursive: true });
+const out = join(DOCS, "architecture.html");
+writeFileSync(out, doc);
+console.log(`Wrote ${out}`);

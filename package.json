@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=22"
   },
+  "workspaces": [
+    "runner"
+  ],
   "scripts": {
     "build": "npm run build:view && npm run build:server",
     "build:view": "vite build",
@@ -15,7 +18,11 @@
     "serve:stdio": "tsx server/main.ts --stdio",
     "dev": "concurrently -n view,server -c blue,green \"vite build --watch\" \"tsx watch server/main.ts\"",
     "start": "node dist/server/main.js",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
+    "driver": "tsx runner/src/cli.ts",
+    "report": "tsx runner/src/report.ts",
+    "how-it-works": "tsx runner/src/how-it-works.ts",
+    "architecture": "tsx runner/src/architecture.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit && tsc -p runner/tsconfig.json --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.4",
