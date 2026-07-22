@@ -57,6 +57,11 @@ export type CapabilityRequest =
   // Optional desktop-host affordance: the tool names in the model's context.
   // Unimplemented on browser hosts → unsupported (tests fall back).
   | { kind: "readModelToolList" }
+  // Operator reads the host page's <iframe> elements (sandbox/allow/csp attrs +
+  // counts) — the sandboxed View can't observe these about itself.
+  | { kind: "inspectFrame" }
+  // Operator scans the host browser console for a line matching `pattern`.
+  | { kind: "readConsole"; pattern: string; timeoutMs: number }
   // Per-manual-test isolation, emitted by the suite's manual wrapper (not by
   // test authors).
   | { kind: "resetIsolation" };

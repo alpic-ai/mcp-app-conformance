@@ -88,6 +88,10 @@ const requestLabel = (req: CapabilityRequest): string => {
 			return `Toggle the host theme to ${req.to}.`;
 		case "readModelToolList":
 			return "Provide the model's tool list (or skip if unavailable).";
+		case "inspectFrame":
+			return "Inspect the host's iframe elements (operator).";
+		case "readConsole":
+			return `Scan the host console for /${req.pattern}/ (operator).`;
 		case "resetIsolation":
 			return "Reset the host to a clean state before the next manual test.";
 	}

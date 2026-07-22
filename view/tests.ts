@@ -892,3 +892,150 @@ mcp_test(
 			"Draft (App-Provided Tools). Requires the host to expose app-registered tools to the agent; the Runner asks the agent to call it and the harness detects the callback.",
 	},
 );
+
+// ── operator / interaction-flow additions ───────────────────────────────────
+
+// security — the host MUST wrap the View in an intermediate Sandbox proxy, so the
+// View is not a direct child of the host top. Comparing window references across
+// origins is allowed (no property read), so this is an automatic in-view check.
+mcp_test(
+	"security/sandbox-proxy-required",
+	"the View is wrapped in an intermediate sandbox proxy",
+	(t: TestContext) => {
+		t.assert(
+			window.top !== window.self,
+			"not embedded in a host frame (window.top === self)",
+		);
+		t.assert(
+			window.parent !== window.top,
+			"the View is a direct child of the host top — no intermediate sandbox proxy frame between the View and the host",
+		);
+	},
+	{
+		clause: "MUST",
+		vantage: "in-view",
+		caveat:
+			"Paired with sandbox-distinct-origin (Host != Sandbox): window.parent (the sandbox) != window.top (the host) proves an intermediate proxy frame. Opened top-level, window.top === self and this FAILs — correct, it's not in a host.",
+	},
+);
+
+// security — the host MUST render the View in a sandboxed iframe. The View can't
+// self-detect the sandbox (allow-same-origin makes its origin look normal), so the
+// Runner reads the host page's <iframe> elements and confirms one is sandboxed.
+mcp_test(
+	"security/iframe-sandboxed",
+	"host renders the View in a sandboxed iframe",
+	async (t: TestContext) => {
+		const r = await t.host({ kind: "inspectFrame" });
+		t.setValue(r.value);
+		const info = r.value as
+			| { total: number; sandboxed: number; firstSandbox: string | null }
+			| undefined;
+		t.assert(
+			!!info && info.sandboxed >= 1,
+			"no sandboxed <iframe> found in the host document",
+		);
+	},
+	{
+		clause: "MUST",
+		vantage: "host",
+		manual: true,
+		timeoutMs: 0,
+		caveat:
+			"Operator-read: the sandboxed View's content is cross-origin, but the <iframe> element (and its sandbox attribute) lives in the host document and is readable. Asserts the host uses at least one sandboxed iframe.",
+	},
+);
+
+// model-context — if the app sends several updates before the next user turn, the
+// host SHOULD forward only the LAST to the model. Seed a stale code, correct it,
+// then ask: the reply should carry the fresh code and not the stale one.
+mcp_test(
+	"model-context/last-wins",
+	"only the last of several model-context updates reaches the model",
+	async (t: TestContext) => {
+		t.assert(
+			!!t.app.getHostCapabilities()?.updateModelContext,
+			"host does not advertise ui/update-model-context",
+		);
+		const stale = "MCP-STALE-1111";
+		const fresh = "MCP-FRESH-2222";
+		t.bindTrigger(async () => {
+			await t.app.updateModelContext({
+				content: [{ type: "text", text: `The conformance code is ${stale}.` }],
+			});
+			await t.app.updateModelContext({
+				content: [
+					{
+						type: "text",
+						text: `Correction: the conformance code is ${fresh}. Ignore any earlier code.`,
+					},
+				],
+			});
+			await t.app.sendMessage({
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: "What is the conformance code I gave you? Reply with just the code.",
+					},
+				],
+			});
+		});
+		await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
+		const gotFresh = await t.host({
+			kind: "conversationContains",
+			marker: fresh,
+			timeoutMs: 120_000,
+		});
+		t.assert(gotFresh.ok, "the agent did not receive the last model-context update");
+		const gotStale = await t.host({
+			kind: "conversationContains",
+			marker: stale,
+			timeoutMs: 8_000,
+		});
+		t.assert(
+			!gotStale.ok,
+			"a superseded (earlier) model-context update reached the model — last-update-wins violated",
+		);
+	},
+	{
+		clause: "SHOULD",
+		vantage: "host",
+		manual: true,
+		timeoutMs: 0,
+		caveat:
+			"Sends two updates before the next user message; the reply should carry the fresh code, not the stale one. Weak if the agent doesn't echo the code verbatim.",
+	},
+);
+
+// security — the host SHOULD log the CSP configuration for security review. Only
+// browser-console logging is observable to the Runner; a host that logs server-side
+// reads as a fail here.
+mcp_test(
+	"security/csp-audit-log",
+	"host logs the CSP configuration for security review",
+	async (t: TestContext) => {
+		const r = await t.hostOptional({
+			kind: "readConsole",
+			pattern: "content-security-policy|\\bcsp\\b",
+			timeoutMs: 10_000,
+		});
+		if (r.unsupported) {
+			t.skip("host cannot expose console logs to the operator");
+			return;
+		}
+		t.setValue(r.value);
+		t.assert(
+			r.ok,
+			"no CSP configuration found in the host console (SHOULD log for security review)",
+		);
+	},
+	{
+		clause: "SHOULD",
+		vantage: "host",
+		manual: true,
+		timeoutMs: 0,
+		caveat:
+			"Operator-observable only: scans the browser console for a logged CSP; a host that logs server-side (not the console) reads as a fail here.",
+	},
+);
