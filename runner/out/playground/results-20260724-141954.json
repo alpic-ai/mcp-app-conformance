@@ -1,0 +1,426 @@
+{
+  "host": "playground",
+  "appName": "MCP Apps Conformance",
+  "capturedAt": "2026-07-24T14:19:54.176Z",
+  "counts": {
+    "PASS": 30,
+    "FAIL": 3,
+    "TIMEOUT": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "results": [
+    {
+      "id": "lifecycle/initialize-capabilities",
+      "name": "ui/initialize returns hostCapabilities",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "value": {
+        "openLinks": {},
+        "serverTools": {
+          "listChanged": true
+        },
+        "serverResources": {
+          "listChanged": true
+        },
+        "updateModelContext": {
+          "text": {}
+        },
+        "message": {
+          "text": {}
+        }
+      },
+      "durationMs": 8
+    },
+    {
+      "id": "context/initialize-hostcontext",
+      "name": "ui/initialize result carries hostContext",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD, not MUST — a host may legitimately omit hostContext, which would FAIL here. We assert presence; a richer version would only validate shape when present.",
+      "value": {
+        "theme": "light",
+        "styles": {
+          "variables": {
+            "--color-background-primary": "light-dark(#ffffff, #071718)",
+            "--color-background-secondary": "light-dark(#f1f5f5, #0c1c1c)",
+            "--color-background-tertiary": "light-dark(#e3eaea, #243838)",
+            "--color-background-inverse": "light-dark(#071718, #0c1c1c)",
+            "--color-background-danger": "light-dark(#d92d20, #d92d20)",
+            "--color-background-success": "light-dark(#079455, #079455)",
+            "--color-background-warning": "light-dark(#dc6803, #dc6803)",
+            "--color-background-disabled": "light-dark(#f1f5f5, #162828)",
+            "--color-text-primary": "light-dark(#121e1e, #ffffff)",
+            "--color-text-secondary": "light-dark(#3a4848, #90a4a4)",
+            "--color-text-tertiary": "light-dark(#536262, #698080)",
+            "--color-text-inverse": "light-dark(#ffffff, #ffffff)",
+            "--color-text-danger": "light-dark(#d92d20, #f04438)",
+            "--color-text-success": "light-dark(#079455, #17b26a)",
+            "--color-text-warning": "light-dark(#dc6803, #f79009)",
+            "--color-text-disabled": "light-dark(#6f7f7f, #465b5b)",
+            "--color-border-primary": "light-dark(#acb8b8, #213535)",
+            "--color-border-secondary": "light-dark(#c9d4d4, #162828)",
+            "--color-border-danger": "light-dark(#fda29b, #f04438)",
+            "--color-border-disabled": "light-dark(#f1f5f5, #162828)",
+            "--color-ring-primary": "light-dark(#f22b79, #f22b79)",
+            "--color-ring-danger": "light-dark(#d92d20, #f04438)",
+            "--font-sans": "\"Inter\", system-ui, sans-serif",
+            "--font-mono": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, \"SF Mono\", Menlo, Consolas, monospace",
+            "--font-text-xs-size": "12px",
+            "--font-text-sm-size": "14px",
+            "--font-text-md-size": "16px",
+            "--font-text-lg-size": "18px",
+            "--font-text-xs-line-height": "18px",
+            "--font-text-sm-line-height": "20px",
+            "--font-text-md-line-height": "24px",
+            "--font-text-lg-line-height": "28px",
+            "--border-radius-xs": "4px",
+            "--border-radius-sm": "6px",
+            "--border-radius-md": "8px",
+            "--border-radius-lg": "10px",
+            "--border-radius-xl": "12px"
+          },
+          "css": {
+            "fonts": "@import url(\"https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap\");"
+          }
+        },
+        "displayMode": "inline",
+        "availableDisplayModes": [
+          "inline",
+          "pip",
+          "fullscreen"
+        ],
+        "containerDimensions": {
+          "maxHeight": 6000,
+          "width": 768
+        },
+        "locale": "en-GB",
+        "platform": "desktop"
+      },
+      "durationMs": 6
+    },
+    {
+      "id": "context/theme-variables",
+      "name": "host provides theme CSS variables (styles.variables)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Optional (MAY). Signal only — inspect the exact values in the Inspector panel.",
+      "durationMs": 4
+    },
+    {
+      "id": "context/light-dark",
+      "name": "theme-aware values use CSS light-dark()",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD, and only observable when the host passes style variables. Non-color variables (radii, shadows) legitimately don't use light-dark(), so this is a signal, not a hard fail.",
+      "durationMs": 4
+    },
+    {
+      "id": "context/theme-fonts",
+      "name": "host provides custom fonts (styles.css.fonts)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Optional (MAY). Signal only — inspect the font CSS in the Inspector panel.",
+      "durationMs": 4
+    },
+    {
+      "id": "tools/proxy-call",
+      "name": "host proxies tools/call to the server",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "The server also sees this call directly, so it can be corroborated server-side.",
+      "durationMs": 711
+    },
+    {
+      "id": "visibility/app-tool-call-guard",
+      "name": "host rejects app call to a model-only tool",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Covers the app→tool direction only. The complementary `visibility/app-tool-hidden` (tool absent from the *agent's* list) needs the agent vantage and isn't measurable here.",
+      "durationMs": 4
+    },
+    {
+      "id": "display/return-resulting-mode",
+      "name": "ui/request-display-mode returns the resulting mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Requests the current mode ('inline') to avoid a disruptive change, but a host may still re-render as a side effect.",
+      "durationMs": 9
+    },
+    {
+      "id": "security/sandbox-distinct-origin",
+      "name": "host and sandbox have different origins",
+      "status": "FAIL",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Host ≠ Sandbox. The View runs same-origin inside the Sandbox, so this checks window.top (the host), not window.parent (the sandbox). Opened top-level (no host), window.top === self and this FAILs — correct, it's not in a host.",
+      "message": "reading window.top.location (the host) must throw — host and sandbox must have different origins",
+      "durationMs": 3
+    },
+    {
+      "id": "security/sandbox-permissions",
+      "name": "sandbox grants allow-scripts + allow-same-origin",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Inferred: scripts executing ⇒ allow-scripts; non-opaque window.origin ⇒ allow-same-origin.",
+      "durationMs": 3
+    },
+    {
+      "id": "lifecycle/tool-input",
+      "name": "host sends tool-input after initialize",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Captured via the ontoolinput callback (registered before connect). TIMEOUT means the host never sent it for the launching tool.",
+      "durationMs": 2
+    },
+    {
+      "id": "lifecycle/tool-result",
+      "name": "host sends tool-result on completion",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Captured via ontoolresult. Some hosts may not replay tool-result for the tool that launched the view — TIMEOUT flags that.",
+      "durationMs": 5
+    },
+    {
+      "id": "lifecycle/tool-input-partial-stop",
+      "name": "host stops tool-input-partial once tool-input is sent",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Only catches a violation if the host actually streams partials; our launcher tool has no streamable args, so this usually passes vacuously (0 partials observed).",
+      "durationMs": 304
+    },
+    {
+      "id": "display/no-undeclared-mode",
+      "name": "host does not switch to an undeclared display mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST NOT",
+      "caveat": "We declare only inline/fullscreen in appCapabilities, then request the undeclared 'pip'.",
+      "durationMs": 8
+    },
+    {
+      "id": "display/unavailable-returns-current",
+      "name": "unavailable mode request returns the current mode",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "SHOULD — assumes the current mode is stable between reading hostContext and the request.",
+      "durationMs": 6
+    },
+    {
+      "id": "security/csp-allow-declared",
+      "name": "declared connectDomains origin is allowed",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "The runner declares connectDomains: [\"https://modelcontextprotocol.io/\"]. ⚠️ a network failure also reads as \"not allowed\", so the origin must be reachable.",
+      "durationMs": 194
+    },
+    {
+      "id": "security/csp-no-loosening",
+      "name": "undeclared origin stays blocked when a CSP is declared",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST NOT",
+      "caveat": "Backed by csp-allow-declared as the positive control: the declared origin works, so blocking this one is genuinely the CSP, not a blanket fetch failure.",
+      "durationMs": 4
+    },
+    {
+      "id": "security/csp-construct-from-domains",
+      "name": "host constructs the CSP from the declared domains",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Reads the applied CSP via a <meta> tag or the securitypolicyviolation event's originalPolicy. ⚠️ if the host delivers CSP only by HTTP header and no violation fires (or originalPolicy is redacted), it can't be read.",
+      "durationMs": 3
+    },
+    {
+      "id": "dimensions/listen-size-changed",
+      "name": "host resizes the iframe on size-changed (flexible mode)",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Flexible mode only (returns vacuously if the host pins a fixed height). Relies on autoResize reporting the taller content and the view's window.innerHeight reflecting the resize; the host may clamp to maxHeight.",
+      "durationMs": 30
+    },
+    {
+      "id": "capabilities/server-passthrough",
+      "name": "host forwards resources/list from the view to the server",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "SHOULD",
+      "caveat": "Exercises resources/list passthrough (distinct from tools/proxy-call's tools/call). Gated on the host advertising serverResources.",
+      "durationMs": 375
+    },
+    {
+      "id": "capabilities/content-modalities",
+      "name": "host declares content-block modalities for message / update-model-context",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MAY",
+      "caveat": "Draft (specification/draft). Signal only — reports the SupportedContentBlockModalities the host advertises.",
+      "durationMs": 8
+    },
+    {
+      "id": "security/sandbox-proxy-required",
+      "name": "the View is wrapped in an intermediate sandbox proxy",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": false,
+      "clause": "MUST",
+      "caveat": "Paired with sandbox-distinct-origin (Host != Sandbox): window.parent (the sandbox) != window.top (the host) proves an intermediate proxy frame. Opened top-level, window.top === self and this FAILs — correct, it's not in a host.",
+      "durationMs": 8
+    },
+    {
+      "id": "context/context-changed",
+      "name": "host notifies the view when the theme changes",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": true,
+      "clause": "MAY",
+      "caveat": "The Runner toggles the host theme and the view resolves on the hostcontextchanged notification. SKIP if the host doesn't emit it (e.g. theme pinned, not following the OS).",
+      "durationMs": 31
+    },
+    {
+      "id": "links/open-external",
+      "name": "ui/open-link opens the URL",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Host-vantage: the sandboxed view can't see the host open a tab, so the Runner triggers ui/open-link and verifies a tab opened (accepting a consent dialog if shown; some hosts open with none).",
+      "durationMs": 8137
+    },
+    {
+      "id": "messages/add-to-conversation",
+      "name": "ui/message is added to the conversation",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Host-vantage: the view can't read the host's conversation, so the Runner confirms the marker appeared (some hosts draft into the composer — commitDraftedMessage sends it).",
+      "durationMs": 61
+    },
+    {
+      "id": "visibility/app-tool-hidden",
+      "name": "host hides app-only tools from the agent",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "MUST NOT",
+      "caveat": "`conformance_probe` is app-only (visibility [\"app\"]) so it must not be in the model-facing tools/list. Uses the desktop-host tool-list affordance if available, else the agent's own (truthful) enumeration.",
+      "durationMs": 48127
+    },
+    {
+      "id": "model-context/provide-future-turns",
+      "name": "ui/update-model-context reaches the model next turn",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Multi-turn, host-vantage: seeds ui/update-model-context then asks the agent to recall it; confirms the host fed the context to the model on the following turn.",
+      "durationMs": 6073
+    },
+    {
+      "id": "sampling/create-message",
+      "name": "sampling/createMessage returns a completion",
+      "status": "FAIL",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Draft. Capability-gated. The host has full discretion (model selection, rate limiting, user approval); the Runner triggers the call, may approve it, and confirms the reply.",
+      "message": "host does not advertise the sampling capability",
+      "durationMs": 5
+    },
+    {
+      "id": "download-file/confirm",
+      "name": "ui/download-file downloads a file",
+      "status": "FAIL",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Draft. Host-vantage: the download and its confirmation dialog occur outside the sandboxed iframe, so the Runner confirms.",
+      "message": "host does not advertise the downloadFile capability",
+      "durationMs": 6
+    },
+    {
+      "id": "app-tools/call",
+      "name": "host calls an app-registered tool",
+      "status": "PASS",
+      "vantage": "in-view",
+      "manual": true,
+      "clause": "MAY",
+      "caveat": "Draft (App-Provided Tools). Requires the host to expose app-registered tools to the agent; the Runner asks the agent to call it and the harness detects the callback.",
+      "durationMs": 1754
+    },
+    {
+      "id": "security/iframe-sandboxed",
+      "name": "host renders the View in a sandboxed iframe",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "MUST",
+      "caveat": "Operator-read: the sandboxed View's content is cross-origin, but the <iframe> element (and its sandbox attribute) lives in the host document and is readable. Asserts the host uses at least one sandboxed iframe.",
+      "value": {
+        "total": 1,
+        "sandboxed": 1,
+        "firstSandbox": "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
+      },
+      "durationMs": 17
+    },
+    {
+      "id": "model-context/last-wins",
+      "name": "only the last of several model-context updates reaches the model",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Sends two updates before the next user message; the reply should carry the fresh code, not the stale one. Weak if the agent doesn't echo the code verbatim.",
+      "durationMs": 18081
+    },
+    {
+      "id": "security/csp-audit-log",
+      "name": "host logs the CSP configuration for security review",
+      "status": "PASS",
+      "vantage": "host",
+      "manual": true,
+      "clause": "SHOULD",
+      "caveat": "Operator-observable only: scans the browser console for a logged CSP; a host that logs server-side (not the console) reads as a fail here.",
+      "value": "[MCP App] Applied Content-Security-Policy for ui://conformance/runner {connectDomains: Array(1)}",
+      "durationMs": 19
+    }
+  ]
+}
