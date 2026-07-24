@@ -7,7 +7,9 @@ import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
 // machinery drives it fine.
 export class AlpicPlaygroundBrowserHost extends BrowserHost {
   readonly name = "playground";
-  readonly url = "https://mcp-apps-conformance.alpic.live/try";
+  // `?e2e=1` opts the playground into its read-only conversation seam
+  // (window.__alpicPlayground.getMessages) — see verifyConversation.
+  readonly url = "https://mcp-apps-conformance.alpic.live/try?e2e=1";
   readonly widgetSelector = "iframe";
 
   protected async sendPrompt(page: Page, _appName: string): Promise<void> {
@@ -24,7 +26,11 @@ export class AlpicPlaygroundBrowserHost extends BrowserHost {
     // no cookie/consent banner on the playground
   }
 
-  // No conversation API on the playground; scrape the page text (best-effort).
+  // Read the conversation from the playground's state seam
+  // (window.__alpicPlayground.getMessages, gated behind `?e2e=1`) rather than
+  // scraping the DOM — messages added via ui/message are kept out of the visible
+  // transcript, so an innerText scrape misses them. Falls back to the page text
+  // if the seam is absent (older deploy without the seam).
   protected async verifyConversation(
     page: Page,
     marker: string,
@@ -32,8 +38,15 @@ export class AlpicPlaygroundBrowserHost extends BrowserHost {
   ): Promise<boolean> {
     return this.pollMarker(
       page,
-      (m: string) =>
-        (globalThis as any).document.body.innerText.includes(m) ? "found" : "not-found",
+      (m: string) => {
+        const api = (globalThis as any).__alpicPlayground as
+          | { getMessages: () => { role: string; text: string }[] }
+          | undefined;
+        if (api) {
+          return api.getMessages().some((msg) => msg.text.includes(m)) ? "found" : "not-found";
+        }
+        return (globalThis as any).document.body.innerText.includes(m) ? "found" : "not-found";
+      },
       marker,
       timeoutMs,
       6_000,
