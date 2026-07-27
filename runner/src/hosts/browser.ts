@@ -24,6 +24,11 @@ export abstract class BrowserHost implements Host {
 	): Promise<boolean>;
 	protected commitMessage?(page: Page): Promise<void>;
 
+	// Halt any in-flight AI generation so a previous test's turn can't bleed into
+	// the next (a still-generating host swallows the next test's message). Called
+	// from resetBetweenTests; best-effort no-op unless a host overrides it.
+	protected async stopGeneration(_page: Page): Promise<void> {}
+
 	async setup(opts: SetupOptions): Promise<SuiteBridge> {
 		this.recordVideoDir = opts.recordVideoDir;
 		await this.launch(opts.profileDir);
@@ -57,6 +62,10 @@ export abstract class BrowserHost implements Host {
 		return { ok: await this.clickTopPageButton(label) };
 	}
 
+	// The accept-button label on the host's open-link consent dialog, if it shows
+	// one. Subclasses override when the button reads differently (e.g. "Confirm").
+	protected readonly openLinkConsentLabel: string = "Open link";
+
 	// Success is the specific link OPENING, not a dialog: ChatGPT opens directly
 	// with no prompt, Claude first shows an "Open link" consent. app.openLink
 	// already fired (clickTrigger) from inside the iframe, so the tab may already
@@ -75,7 +84,7 @@ export abstract class BrowserHost implements Host {
 						p.url().replace(/\/+$/, "").startsWith(target),
 				);
 		if (isTargetTab()) return { ok: true };
-		await this.clickTopPageButton("Open link", 8);
+		await this.clickTopPageButton(this.openLinkConsentLabel, 8);
 		const deadline = Date.now() + 10_000;
 		while (Date.now() < deadline) {
 			if (isTargetTab()) return { ok: true };
@@ -130,6 +139,7 @@ export abstract class BrowserHost implements Host {
 
 	async resetBetweenTests(): Promise<void> {
 		await this.page.bringToFront();
+		await this.stopGeneration(this.page); // isolation: end the prior turn's generation
 		await this.clearHostOverlay();
 		// A real click reverts the display mode to inline; hosts gate display-mode
 		// changes on a user gesture, so a programmatic reset alone won't work.
