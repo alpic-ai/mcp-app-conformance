@@ -10,8 +10,8 @@ export abstract class BrowserHost implements Host {
 	abstract readonly url: string;
 	abstract readonly widgetSelector: string;
 
-	private context!: BrowserContext;
-	private page!: Page;
+	protected context!: BrowserContext;
+	protected page!: Page;
 	private recordVideoDir?: string;
 	private consoleLines: string[] = [];
 
@@ -31,14 +31,21 @@ export abstract class BrowserHost implements Host {
 
 	async setup(opts: SetupOptions): Promise<SuiteBridge> {
 		this.recordVideoDir = opts.recordVideoDir;
-		await this.launch(opts.profileDir);
-		await this.page.goto(this.url, { timeout: PAGE_LOAD_TIMEOUT_MS });
+		await this.open(opts);
 		await sleep(5_000); // SPA hydration
 		await this.dismissModal(this.page);
 		await this.sendPrompt(this.page, opts.appName);
 		await this.waitForWidget();
 		await sleep(8_000); // app init handshake
 		return this.bridge();
+	}
+
+	// Acquire the page and set this.context/this.page. A web host launches a fresh
+	// Chrome and navigates to this.url; a desktop (Electron) host overrides this to
+	// attach to a running app over CDP instead (no URL to navigate).
+	protected async open(opts: SetupOptions): Promise<void> {
+		await this.launch(opts.profileDir);
+		await this.page.goto(this.url, { timeout: PAGE_LOAD_TIMEOUT_MS });
 	}
 
 	async teardown(): Promise<void> {
