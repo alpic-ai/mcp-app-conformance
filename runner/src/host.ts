@@ -1,4 +1,4 @@
-import type { CapabilityResult, SuitePoll, TestMeta } from "../../shared/protocol";
+import type { CapabilityResult, HostImplementation, SuitePoll, TestMeta } from "../../shared/protocol";
 
 export interface SetupOptions {
   appName: string;
@@ -8,6 +8,7 @@ export interface SetupOptions {
 
 export interface SuiteBridge {
   listTests(): Promise<TestMeta[]>;
+  hostInfo(): Promise<HostImplementation | null>;
   start(filter?: { manual?: boolean; id?: string }): Promise<void>;
   poll(): Promise<SuitePoll>;
   resolve(result: CapabilityResult): Promise<void>;

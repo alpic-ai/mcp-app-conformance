@@ -93,8 +93,19 @@ export const CHANNEL = "__mcpConformance" as const;
  * host, or any other transport for a desktop host). The TestSuite pulls (a test
  * awaits a request result); the Runner polls this snapshot and resolves.
  */
+// The host's MCP client implementation (name/version/title), as discovered by the
+// view during ui/initialize (app.getHostVersion()). Fields optional — a host may
+// omit them.
+export interface HostImplementation {
+  name?: string;
+  version?: string;
+  title?: string;
+}
+
 export interface InIframeChannel {
   listTests(): TestMeta[];
+  // The host's implementation info (name/version), or null if not exposed.
+  hostInfo(): HostImplementation | null;
   // `null` is accepted, not just absent: the Runner sends the filter across
   // `frame.evaluate`, and Playwright serializes `undefined` → `null` on the wire.
   start(filter?: { manual?: boolean; id?: string } | null): void;

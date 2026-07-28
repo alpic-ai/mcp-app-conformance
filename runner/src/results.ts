@@ -1,19 +1,25 @@
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Status, SubtestResult } from "../../shared/protocol";
+import type { HostImplementation, Status, SubtestResult } from "../../shared/protocol";
 
 export interface ResultsFile {
   host: string;
   appName: string;
+  hostInfo?: HostImplementation | null;
   capturedAt: string;
   counts: Record<Status, number>;
   results: SubtestResult[];
 }
 
-export function buildResults(host: string, appName: string, results: SubtestResult[]): ResultsFile {
+export function buildResults(
+  host: string,
+  appName: string,
+  results: SubtestResult[],
+  hostInfo?: HostImplementation | null,
+): ResultsFile {
   const counts = { PASS: 0, FAIL: 0, TIMEOUT: 0, SKIP: 0, NOTRUN: 0 } as Record<Status, number>;
   for (const r of results) counts[r.status]++;
-  return { host, appName, capturedAt: new Date().toISOString(), counts, results };
+  return { host, appName, hostInfo: hostInfo ?? null, capturedAt: new Date().toISOString(), counts, results };
 }
 
 /** Never overwrites — one timestamped file per run (matches the Python driver). */

@@ -177,6 +177,11 @@ export abstract class BrowserHost implements Host {
 
 	private bridge(): SuiteBridge {
 		return {
+			hostInfo: async () => {
+				const frame = await this.appFrame();
+				// Optional call: a not-yet-redeployed view has no hostInfo() → null.
+				return frame.evaluate((k) => globalThis[k]?.hostInfo?.() ?? null, CHANNEL);
+			},
 			listTests: async () => {
 				const frame = await this.appFrame();
 				return frame.evaluate(

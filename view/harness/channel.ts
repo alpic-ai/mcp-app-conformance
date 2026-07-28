@@ -16,6 +16,7 @@ import { engine, getRegistry, type HostSignals } from "./registry";
 export function installChannel(app: App, signals: HostSignals): void {
 	engine.attach(app, signals);
 	window[CHANNEL] = {
+		hostInfo: () => app.getHostVersion() ?? null,
 		listTests: (): TestMeta[] =>
 			getRegistry().map((d) => ({
 				id: d.id,

@@ -130,8 +130,15 @@ function main(): number {
     if (existsSync(join(ROOT, "docs", "recordings", `${h}.webm`))) {
       rec = `<div class="host-meta"><button type="button" class="rec-link" onclick="openRec('${h}')">▶ recording</button></div>`;
     }
+    const info = results[h].hostInfo;
+    const implLabel = info
+      ? [info.title ?? info.name, info.version].filter(Boolean).join(" ")
+      : "";
+    const impl = implLabel
+      ? `<div class="host-meta" title="MCP client implementation reported by the host">${esc(implLabel)}</div>`
+      : "";
     return (
-      `<th class="host"><div class="host-name">${esc(HOST_LABEL[h] ?? h)}</div>` +
+      `<th class="host"><div class="host-name">${esc(HOST_LABEL[h] ?? h)}</div>${impl}` +
       `<div class="host-meta">${esc(fmtTime(results[h].capturedAt))}</div>${rec}</th>`
     );
   };

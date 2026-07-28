@@ -43,8 +43,8 @@ async function main(argv: string[]): Promise<number> {
 	const host = make();
 	const runner = new Runner(host, { appName, profileDir, recordVideoDir });
 
-	const results = await runner.run();
-	const data = buildResults(hostName, appName, results);
+	const { results, hostInfo } = await runner.run();
+	const data = buildResults(hostName, appName, results, hostInfo);
 	const path = writeResults(outDir, data);
 
 	const video = recordVideoDir

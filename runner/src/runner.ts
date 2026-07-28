@@ -1,4 +1,4 @@
-import type { CapabilityRequest, CapabilityResult, SubtestResult } from "../../shared/protocol";
+import type { CapabilityRequest, CapabilityResult, HostImplementation, SubtestResult } from "../../shared/protocol";
 import type { Host } from "./host";
 import { sleep } from "./hosts/util";
 
@@ -20,15 +20,18 @@ export class Runner {
     private readonly pollMs = 800,
   ) {}
 
-  async run(filter?: { manual?: boolean; id?: string }): Promise<SubtestResult[]> {
+  async run(
+    filter?: { manual?: boolean; id?: string },
+  ): Promise<{ results: SubtestResult[]; hostInfo: HostImplementation | null }> {
     const bridge = await this.host.setup(this.opts);
     try {
       await bridge.start(filter);
+      const hostInfo = await bridge.hostInfo().catch(() => null);
       let lastProgress = Date.now();
       let signature = "";
       for (;;) {
         const p = await bridge.poll();
-        if (p.state === "done") return p.results;
+        if (p.state === "done") return { results: p.results, hostInfo };
 
         if (p.state === "running" && p.request) {
           await bridge.resolve(await this.dispatch(p.request));
