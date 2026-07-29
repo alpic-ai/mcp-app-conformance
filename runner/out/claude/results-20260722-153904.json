@@ -1,6 +1,10 @@
 {
   "host": "claude",
   "appName": "MCP Apps Conformance",
+  "hostInfo": {
+    "name": "Claude",
+    "version": "1.0.0"
+  },
   "capturedAt": "2026-07-22T15:39:04.639Z",
   "counts": {
     "PASS": 28,

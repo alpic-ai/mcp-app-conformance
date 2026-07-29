@@ -1,6 +1,10 @@
 {
   "host": "goose",
   "appName": "MCP Apps Conformance",
+  "hostInfo": {
+    "name": "MCP-UI Host",
+    "version": "1.0.0"
+  },
   "capturedAt": "2026-07-27T14:34:16.964Z",
   "counts": {
     "PASS": 19,

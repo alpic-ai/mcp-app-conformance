@@ -1,6 +1,10 @@
 {
   "host": "mistral",
   "appName": "MCP Apps Conformance",
+  "hostInfo": {
+    "name": "Le Chat",
+    "version": "1.0.0"
+  },
   "capturedAt": "2026-07-27T07:59:44.821Z",
   "counts": {
     "PASS": 26,

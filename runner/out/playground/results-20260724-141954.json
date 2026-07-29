@@ -1,6 +1,10 @@
 {
   "host": "playground",
   "appName": "MCP Apps Conformance",
+  "hostInfo": {
+    "name": "alpic-playground",
+    "version": "1.0.0"
+  },
   "capturedAt": "2026-07-24T14:19:54.176Z",
   "counts": {
     "PASS": 30,

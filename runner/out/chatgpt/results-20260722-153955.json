@@ -1,6 +1,10 @@
 {
   "host": "chatgpt",
   "appName": "MCP Apps Conformance",
+  "hostInfo": {
+    "name": "chatgpt",
+    "version": "0.0.1"
+  },
   "capturedAt": "2026-07-22T15:39:55.126Z",
   "counts": {
     "PASS": 23,
