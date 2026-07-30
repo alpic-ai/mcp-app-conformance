@@ -401,31 +401,52 @@ mcp_test(
 	},
 );
 
+const ALL_DISPLAY_MODES = ["inline", "fullscreen", "pip"] as const;
+
 // display — for an unavailable mode request, host SHOULD return the current mode.
+// "Unavailable" is defined by the HOST: the spec has hosts declare what they
+// support in HostContext.availableDisplayModes, so the mode to probe has to be
+// derived from that list rather than hardcoded. A host that offers every mode
+// can never receive an unavailable request, which is why this used to misreport:
+// asking for 'pip' on a host that supports pip is an AVAILABLE request, and
+// returning 'pip' is then correct — not the violation the assertion assumed.
 mcp_test(
 	"display/unavailable-returns-current",
 	"unavailable mode request returns the current mode",
 	async (t: TestContext) => {
-		const current = t.app.getHostContext()?.displayMode ?? "inline";
+		const ctx = t.app.getHostContext();
+		const available = ctx?.availableDisplayModes;
+		if (!available || available.length === 0) {
+			t.skip(
+				"host does not advertise availableDisplayModes, so no mode is knowably unavailable",
+			);
+		}
+		const unavailable = ALL_DISPLAY_MODES.find((m) => !available.includes(m));
+		if (!unavailable) {
+			// Vacuously satisfied — supporting every mode is strictly better than not,
+			// so there is no way to violate a requirement about unavailable modes.
+			return;
+		}
+		const current = ctx?.displayMode ?? "inline";
 		t.addCleanup(async () => {
 			await t.app.requestDisplayMode({ mode: current });
 		});
-		const res = await requestMode(t.app, "pip");
+		const res = await requestMode(t.app, unavailable);
 		t.assert(
 			res.ok,
-			`host returned a malformed result with no valid mode for an unavailable request${res.ok ? "" : `: ${res.error}`}`,
+			`host returned a malformed result with no valid mode when asked for the unavailable '${unavailable}'${res.ok ? "" : `: ${res.error}`}`,
 		);
 		t.assertEquals(
 			res.mode,
 			current,
-			"host should return the current display mode for an unavailable request",
+			`host should return the current display mode when asked for the unavailable '${unavailable}'`,
 		);
 	},
 	{
 		clause: "SHOULD",
 		vantage: "in-view",
 		caveat:
-			"SHOULD — assumes the current mode is stable between reading hostContext and the request.",
+			"Probes a mode absent from the host's own availableDisplayModes. Passes vacuously if the host advertises all of them (nothing can be unavailable); skips if it advertises none. Assumes the current mode is stable between reading hostContext and the request.",
 	},
 );
 
