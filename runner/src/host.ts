@@ -1,4 +1,4 @@
-import type { CapabilityResult, HostImplementation, SuitePoll, TestMeta } from "../../shared/protocol";
+import type { CapabilityResult, HostImplementation, SuitePoll, TestMeta } from "../../shared/protocol.js";
 
 export interface SetupOptions {
   appName: string;

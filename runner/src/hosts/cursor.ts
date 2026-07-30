@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
 import { type Browser, chromium } from "playwright";
 import type { Page } from "playwright";
-import type { CapabilityResult } from "../../../shared/protocol";
-import { CHANNEL } from "../../../shared/protocol";
-import type { SetupOptions } from "../host";
-import { BrowserHost } from "./browser";
-import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import type { CapabilityResult } from "../../../shared/protocol.js";
+import { CHANNEL } from "../../../shared/protocol.js";
+import type { SetupOptions } from "../host.js";
+import { BrowserHost } from "./browser.js";
+import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 const APP = "/Applications/Cursor.app";
 const PORT = 9223;

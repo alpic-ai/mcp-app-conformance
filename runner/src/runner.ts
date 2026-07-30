@@ -1,6 +1,6 @@
-import type { CapabilityRequest, CapabilityResult, HostImplementation, SubtestResult } from "../../shared/protocol";
-import type { Host } from "./host";
-import { sleep } from "./hosts/util";
+import type { CapabilityRequest, CapabilityResult, HostImplementation, SubtestResult } from "../../shared/protocol.js";
+import type { Host } from "./host.js";
+import { sleep } from "./hosts/util.js";
 
 const unsupported = (): CapabilityResult => ({ ok: false, unsupported: true });
 

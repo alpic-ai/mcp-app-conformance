@@ -10,15 +10,66 @@ It ships a single `ui://` test page (the **TestSuite**) that renders **inside th
 
 ## Architecture: Host / Runner / TestSuite
 
-The harness is split into three objects so **any host can run it** — a web chat client today, a desktop app like VSCode or Goose tomorrow. All platform-specific code lives behind one `Host` interface.
+The harness is split into three objects so **any host can run it** — five web chat clients and two Electron desktop apps (Cursor, Goose) today. All platform-specific code lives behind one `Host` interface.
 
 - **TestSuite** (`view/`, in the iframe) — owns the test definitions and the MCP-app communication (the ext-apps `App`). A test emits a typed `CapabilityRequest`, awaits the result, and asserts.
 - **Runner** (`runner/`, external) — lists tests, then pumps each request the suite parks to the Host and feeds the result back. A generic dispatcher with **no per-test logic**.
-- **Host** (`runner/src/hosts/`) — the only platform-specific piece. Opens the app, prompts the agent so the suite renders, and exposes one method per capability. `BrowserHost` (Playwright) is the only implementation today; `VSCodeHost` / `GooseHost` are drop-in peers later.
+- **Host** (`runner/src/hosts/`) — the only platform-specific piece. Opens the app, prompts the agent so the suite renders, and exposes one method per capability. `BrowserHost` (Playwright) covers web chat clients *and* Electron desktop apps: Cursor and Goose reuse the whole stack by overriding one method, `open()`, to attach over CDP instead of launching Chrome.
 
 The suite installs one control seam at `window.__mcpConformance` (`listTests` / `start` / `poll` / `resolve`); the Runner reaches it via `frame.evaluate`. The suite **pulls** (a test awaits a request) and the Runner **polls** — the iframe never has to push out (nested cross-origin `postMessage` is unreliable).
 
 Full write-up → **[docs/architecture.html](https://alpic-ai.github.io/mcp-app-conformance/architecture.html)** · methodology → **[how-it-works](https://alpic-ai.github.io/mcp-app-conformance/how-it-works.html)** · live matrix → **[Results](https://alpic-ai.github.io/mcp-app-conformance/)**.
+
+## Use it as a package
+
+Both halves ship on npm. Nothing in the suite is vendor-specific — the only code you write is the adapter.
+
+**1 · The server, with the suite inside it.** No clone, no build:
+
+```bash
+npx mcp-apps-conformance            # ui:// TestSuite on http://localhost:3000/mcp
+npx mcp-apps-conformance --stdio    # or over stdio, for a desktop host's config
+```
+
+Connect that URL in your host and ask the agent to run `run_conformance`.
+
+**2 · The runner, with your host.** Subclass `BrowserHost`, describe your UI in three hooks, and the generic `Runner` returns structured `SubtestResult[]` you can gate CI on:
+
+```bash
+npm i -D mcp-apps-conformance playwright   # playwright is an optional peer dep
+npx playwright install chromium
+```
+
+```ts
+import { BrowserHost, Runner } from "mcp-apps-conformance";
+import type { Page } from "playwright";
+
+class MyHost extends BrowserHost {
+  readonly name = "my-host";
+  readonly url = "https://my-host.example/chat";
+  readonly widgetSelector = 'iframe[src*="my-sandbox-origin"]';
+
+  protected async sendPrompt(page: Page, appName: string) {
+    await page.fill("#composer", `run ${appName}`);
+    await page.keyboard.press("Enter");
+  }
+  protected async dismissModal(_page: Page) {}
+
+  protected async verifyConversation(page: Page, marker: string, timeoutMs: number) {
+    return this.pollMarker(page, (m) => (document.body.innerText.includes(m) ? "found" : "no"),
+                           marker, timeoutMs, 3_000);
+  }
+}
+
+const { results } = await new Runner(new MyHost(), {
+  appName: "MCP Apps Conformance",
+  profileDir: ".profile/my-host",
+}).run();
+
+if (results.some((r) => r.status === "FAIL")) process.exit(1);
+```
+
+Every capability method is optional, so an adapter is useful long before it's complete — implement `setup`/`teardown` and the tests needing nothing else already run. The main entry drives a browser, so it requires `playwright`; import `mcp-apps-conformance/protocol` instead if you only want the types and the channel constant.
 
 ## Run it against a host
 
@@ -35,6 +86,9 @@ When a test needs a host action, an action card appears — the trigger button f
 npm run driver -- --host playground     # no login — quick smoke test of the whole pipeline
 npm run driver -- --host chatgpt        # logged-in profiles (first run: log in by hand, the profile persists)
 npm run driver -- --host claude
+npm run driver -- --host mistral
+npm run driver -- --host cursor         # Electron desktop app — launches it with a CDP port and attaches
+npm run driver -- --host goose          # (both quit a running instance first: Electron is single-instance)
 npm run report                          # refresh docs/index.html from the latest results
 ```
 

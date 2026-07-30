@@ -1,13 +1,16 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+#!/usr/bin/env node
+import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { HOSTS } from "./hosts/index";
-import { buildResults, finalizeVideo, writeResults } from "./results";
-import { Runner } from "./runner";
+import { HOSTS } from "./hosts/index.js";
+import { buildResults, finalizeVideo, writeResults } from "./results.js";
+import { Runner } from "./runner.js";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const RUNNER_DIR = join(HERE, "..");
-const REPO_ROOT = join(HERE, "..", "..");
+// Output data belongs to whoever runs the driver, so anchor it on the cwd — a
+// module-relative path would write profiles and results inside node_modules once
+// this is installed as a package. npm runs the repo's own scripts from the repo
+// root, so these stay byte-identical to the paths used before packaging.
+const RUNNER_DIR = join(process.cwd(), "runner");
+const REPO_ROOT = process.cwd();
 
 async function main(argv: string[]): Promise<number> {
 	const { values } = parseArgs({

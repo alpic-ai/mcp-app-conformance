@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HostImplementation, Status, SubtestResult } from "../../shared/protocol";
+import type { HostImplementation, Status, SubtestResult } from "../../shared/protocol.js";
 
 export interface ResultsFile {
   host: string;

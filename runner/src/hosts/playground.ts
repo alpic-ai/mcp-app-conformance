@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
-import { BrowserHost } from "./browser";
-import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import { BrowserHost } from "./browser.js";
+import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 // A self-contained playground host at /try with the conformance app
 // pre-connected — no login. Frames are same-origin, but the generic app-frame

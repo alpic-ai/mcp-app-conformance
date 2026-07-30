@@ -1,9 +1,9 @@
 import type { BrowserContext, Frame, Page } from "playwright";
 import { chromium } from "playwright";
-import type { CapabilityResult } from "../../../shared/protocol";
-import { CHANNEL } from "../../../shared/protocol";
-import type { Host, SetupOptions, SuiteBridge } from "../host";
-import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import type { CapabilityResult } from "../../../shared/protocol.js";
+import { CHANNEL } from "../../../shared/protocol.js";
+import type { Host, SetupOptions, SuiteBridge } from "../host.js";
+import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 export abstract class BrowserHost implements Host {
 	abstract readonly name: string;

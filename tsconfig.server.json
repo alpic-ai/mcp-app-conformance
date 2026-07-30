@@ -6,6 +6,7 @@
     "lib": ["ES2023"],
     "strict": true,
     "skipLibCheck": true,
+    "declaration": true,
     "outDir": "dist/server",
     "rootDir": "server",
     "esModuleInterop": true,

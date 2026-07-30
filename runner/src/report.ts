@@ -2,8 +2,8 @@
 import { existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Clause, Status } from "../../shared/protocol";
-import type { ResultsFile } from "./results";
+import type { Clause, Status } from "../../shared/protocol.js";
+import type { ResultsFile } from "./results.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");

@@ -1,19 +1,59 @@
 {
   "name": "mcp-apps-conformance",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "WPT-style conformance & interop test platform for the MCP Apps spec (SEP-1865). A reference test MCP server ships ui:// test pages that run inside any host and report PASS/FAIL.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alpic-ai/mcp-app-conformance.git"
+  },
+  "homepage": "https://alpic-ai.github.io/mcp-app-conformance",
+  "keywords": [
+    "mcp",
+    "mcp-apps",
+    "conformance",
+    "model-context-protocol",
+    "testing"
+  ],
   "engines": {
     "node": ">=22"
   },
+  "main": "./dist/runner/src/index.js",
+  "types": "./dist/runner/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/runner/src/index.d.ts",
+      "default": "./dist/runner/src/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/shared/protocol.d.ts",
+      "default": "./dist/shared/protocol.js"
+    },
+    "./server": {
+      "types": "./dist/server/server.d.ts",
+      "default": "./dist/server/server.js"
+    }
+  },
+  "bin": {
+    "mcp-apps-conformance": "./dist/server/main.js",
+    "mcp-apps-conformance-driver": "./dist/runner/src/cli.js"
+  },
+  "files": [
+    "dist/server",
+    "dist/view",
+    "dist/runner",
+    "dist/shared"
+  ],
   "workspaces": [
     "runner"
   ],
   "scripts": {
-    "build": "npm run build:view && npm run build:server",
+    "build": "npm run build:view && npm run build:server && npm run build:runner",
     "build:view": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
+    "build:runner": "tsc -p runner/tsconfig.json",
+    "prepack": "npm run build",
     "serve": "tsx server/main.ts",
     "serve:stdio": "tsx server/main.ts --stdio",
     "dev": "concurrently -n view,server -c blue,green \"vite build --watch\" \"tsx watch server/main.ts\"",
@@ -31,6 +71,14 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.49"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
-import { BrowserHost } from "./browser";
-import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import { BrowserHost } from "./browser.js";
+import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 // The mcp-use "Manufact" inspector auto-connects to the conformance server via
 // its ?server= URL param (no login) and renders MCP apps in a

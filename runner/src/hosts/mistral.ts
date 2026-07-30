@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
-import { BrowserHost } from "./browser";
-import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import { BrowserHost } from "./browser.js";
+import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 // Mistral's Le Chat renders MCP apps in a sandboxed
 // `*.web-sandbox.mistralusercontent.com/mcp-apps` iframe, and its composer is a

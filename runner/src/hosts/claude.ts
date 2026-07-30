@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
-import { BrowserHost } from "./browser";
-import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util";
+import { BrowserHost } from "./browser.js";
+import { CLICK_TIMEOUT_MS, PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
 export class ClaudeBrowserHost extends BrowserHost {
   readonly name = "claude";

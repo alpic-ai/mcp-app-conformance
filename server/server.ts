@@ -16,18 +16,35 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { z } from "zod";
 
 const RUNNER_URI = "ui://conformance/runner";
-const VIEW_HTML = resolve(process.cwd(), "dist/view/index.html");
+
+// Module-relative, not cwd-relative: published, this file is `dist/server/server.js`
+// and must find its own bundled view no matter where node was started from.
+//   repo, tsx from server/      → ../dist/view  (the build)
+//   repo, node dist/server/     → ../dist/view is dist/dist/view (absent) → ../view
+//   published, dist/server/     → ../view, i.e. the sibling dist/view
+// The sibling is only trusted when we are inside a `dist/` dir — in the repo,
+// `../view/index.html` is the *unbundled* Vite template, which would render broken
+// instead of showing the honest "not built" notice below.
+const HERE = import.meta.dirname;
+const VIEW_CANDIDATES = [
+  resolve(HERE, "../dist/view/index.html"),
+  ...(basename(dirname(HERE)) === "dist"
+    ? [resolve(HERE, "../view/index.html")]
+    : []),
+];
 
 // The runner declares a CSP so the suite can test both directions: this origin
 // is ALLOWED (connectDomains), and any other origin must stay blocked.
 const CSP_ALLOWED_ORIGIN = "https://modelcontextprotocol.io";
 
 function loadRunnerHtml(): string {
-  if (existsSync(VIEW_HTML)) return readFileSync(VIEW_HTML, "utf-8");
+  // Resolved per read, not at import, so `vite build --watch` is picked up live.
+  const found = VIEW_CANDIDATES.find(existsSync);
+  if (found) return readFileSync(found, "utf-8");
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px">
     <h2>Runner not built</h2><p>Run <code>npm run build:view</code> first.</p></body></html>`;
 }
