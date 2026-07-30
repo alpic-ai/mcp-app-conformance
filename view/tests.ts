@@ -610,8 +610,12 @@ mcp_test(
 	"links/open-external",
 	"ui/open-link opens the URL",
 	async (t: TestContext) => {
-		// A URL that does NOT redirect, so the opened tab's URL matches exactly.
-		const url = "https://modelcontextprotocol.io/docs/getting-started/intro";
+		// The docs site redirects to a version-dated path (…/docs/<spec-date>/…) and
+		// checkLinkOpen prefix-matches the opened tab's FINAL url, so a deep link
+		// breaks on every spec release. Target the stable `/docs` prefix instead —
+		// each dated destination still starts with it. Keep a real path segment: a
+		// bare origin would also prefix-match `modelcontextprotocol.io.example.com`.
+		const url = "https://modelcontextprotocol.io/docs";
 		t.bindTrigger(() => t.app.openLink({ url }));
 		await t.host({ kind: "clickTrigger" });
 		const r = await t.host({ kind: "checkLinkOpen", url });
