@@ -11,46 +11,99 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DOCS = join(HERE, "..", "..", "docs");
 
-const DIAGRAM = `                 in the iframe            external process (a "Host")
-              ┌────────────────────┐      ┌──────────────────────────────┐
-   asserts →  │      TestSuite      │      │           Runner             │
-              │  owns test defs +   │      │  generic dispatch loop:      │
-              │  MCP-app comms      │      │  poll → dispatch → resolve   │
-              │                     │      │            │                 │
-              │  window             │◀─────┤  SuiteBridge (frame.evaluate │
-              │  .__mcpConformance  │─────▶│    for a browser host)       │
-              │  listTests/start/   │ poll │            │                 │
-              │  poll/resolve       │      │            ▼                 │
-              └─────────┬───────────┘      │   Host capability methods    │
-                        │                  │  clickTrigger / confirmDialog│
-              ext-apps App               │  conversationContains /      │
-              (PostMessage bridge)         │  toggleTheme / …             │
-                        │                  └──────────────┬───────────────┘
-                        ▼                                 │ real clicks, DOM,
-              ┌────────────────────┐                      │ conversation API
-              │  the chat host      │◀─────────────────────┘
-              │  (ChatGPT / Claude  │
-              │   / a desktop app)  │
-              └─────────┬───────────┘
-                        │ MCP
-                        ▼
-              ┌────────────────────┐
-              │   MCP server        │
-              └────────────────────┘`;
+// The hero schema. An SVG (not ASCII in a <pre>) so it stays crisp when projected
+// and legible on a phone; the third band also shows what ships as npm vs what a
+// host implementer writes.
+const DIAGRAM = `<svg viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dt">
+<title id="dt">The MCP server serves a ui:// TestSuite; the host renders it in a sandboxed iframe;
+an external Runner polls the suite over window.__mcpConformance and dispatches each capability
+request to a host adapter that drives the real product UI.</title>
+<defs>
+  <marker id="a1" markerWidth="9" markerHeight="7" refX="8" refY="3" orient="auto-start-reverse">
+    <path d="M0,0 L8,3 L0,6 z" fill="#5b6573"/></marker>
+  <marker id="a2" markerWidth="9" markerHeight="7" refX="8" refY="3" orient="auto-start-reverse">
+    <path d="M0,0 L8,3 L0,6 z" fill="#1a73e8"/></marker>
+</defs>
+<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+
+  <rect x="14" y="8" width="196" height="22" rx="11" fill="#e6f4ea"/>
+  <text x="112" y="23" font-size="10.5" fill="#137333" text-anchor="middle">npx mcp-apps-conformance</text>
+  <rect x="300" y="8" width="310" height="22" rx="11" fill="#eef1f4"/>
+  <text x="455" y="23" font-size="10.5" fill="#5b6573" text-anchor="middle">the product under test</text>
+  <rect x="700" y="8" width="286" height="22" rx="11" fill="#e8f0fe"/>
+  <text x="843" y="23" font-size="10.5" fill="#1a73e8" text-anchor="middle">import { Runner, BrowserHost }</text>
+
+  <rect x="14" y="44" width="196" height="150" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="30" y="68" font-size="13" font-weight="600" fill="#171a1f">MCP server</text>
+  <text x="30" y="90" font-size="10.5" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">ui://conformance/runner</text>
+  <text x="30" y="106" font-size="10" fill="#5b6573">the TestSuite — one HTML file</text>
+  <text x="30" y="132" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">conformance_probe</text>
+  <text x="30" y="147" font-size="9.5" fill="#5b6573">app-visible fixture</text>
+  <text x="30" y="167" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">model_only_probe</text>
+  <text x="30" y="182" font-size="9.5" fill="#5b6573">must stay hidden from the app</text>
+
+  <line x1="212" y1="118" x2="296" y2="118" stroke="#5b6573" stroke-width="1.3" marker-end="url(#a1)"/>
+  <text x="254" y="108" font-size="10" fill="#5b6573" text-anchor="middle">MCP</text>
+  <text x="254" y="134" font-size="9" fill="#5b6573" text-anchor="middle">resources/read</text>
+
+  <rect x="300" y="44" width="310" height="246" rx="10" fill="#fff" stroke="#c4cbd4" stroke-dasharray="5 3"/>
+  <text x="318" y="68" font-size="13" font-weight="600" fill="#171a1f">Host under test</text>
+  <text x="318" y="85" font-size="9.5" fill="#5b6573">ChatGPT · Claude · Cursor · Goose · Mistral · …</text>
+  <rect x="318" y="98" width="274" height="128" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="334" y="120" font-size="11.5" font-weight="600" fill="#171a1f">sandboxed iframe</text>
+  <text x="334" y="138" font-size="10" fill="#5b6573">the TestSuite runs in here</text>
+  <text x="334" y="160" font-size="10" fill="#171a1f">asserts the spec from in-view</text>
+  <text x="334" y="178" font-size="10" fill="#171a1f">parks a typed CapabilityRequest</text>
+  <text x="334" y="202" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#1a73e8">window.__mcpConformance</text>
+  <text x="318" y="250" font-size="10" fill="#5b6573">chat transcript · dialogs · theme · console</text>
+
+  <line x1="614" y1="150" x2="696" y2="150" stroke="#1a73e8" stroke-width="1.3"
+        marker-start="url(#a2)" marker-end="url(#a2)"/>
+  <text x="655" y="140" font-size="9" fill="#1a73e8" text-anchor="middle">poll()</text>
+  <text x="655" y="166" font-size="9" fill="#1a73e8" text-anchor="middle">resolve()</text>
+
+  <line x1="696" y1="268" x2="616" y2="268" stroke="#5b6573" stroke-width="1.3" marker-end="url(#a1)"/>
+  <text x="656" y="258" font-size="9" fill="#5b6573" text-anchor="middle">real clicks</text>
+  <text x="656" y="284" font-size="9" fill="#5b6573" text-anchor="middle">DOM · console</text>
+
+  <rect x="700" y="44" width="286" height="246" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="716" y="68" font-size="13" font-weight="600" fill="#171a1f">Runner</text>
+  <text x="716" y="85" font-size="9.5" fill="#5b6573">platform-agnostic · no per-test logic</text>
+  <text x="716" y="108" font-size="11" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">poll → dispatch → resolve</text>
+  <rect x="714" y="126" width="258" height="126" rx="8" fill="#fff" stroke="#1a73e8" stroke-dasharray="5 3"/>
+  <text x="730" y="148" font-size="11.5" font-weight="600" fill="#1a73e8">your Host adapter</text>
+  <text x="730" y="166" font-size="10" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">extends BrowserHost</text>
+  <text x="730" y="188" font-size="9.5" fill="#5b6573">sendPrompt · dismissModal</text>
+  <text x="730" y="204" font-size="9.5" fill="#5b6573">verifyConversation</text>
+  <text x="730" y="228" font-size="10" fill="#1a73e8">the only part you write</text>
+  <text x="730" y="243" font-size="9.5" fill="#5b6573">roughly 20 lines of TypeScript</text>
+
+  <line x1="843" y1="292" x2="843" y2="316" stroke="#5b6573" stroke-width="1.3" marker-end="url(#a1)"/>
+  <rect x="700" y="320" width="286" height="56" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="716" y="343" font-size="11" font-weight="600" font-family="ui-monospace,Menlo,monospace" fill="#0b1020">SubtestResult[]</text>
+  <text x="716" y="362" font-size="9.5" fill="#5b6573">PASS · FAIL · SKIP · TIMEOUT → results matrix</text>
+</g></svg>`;
 
 const PROTOCOL = `// shared/protocol.ts — the one contract both sides import as source
 export type CapabilityRequest =
   | { kind: "clickTrigger"; commitDraftedMessage?: boolean }   // real cross-origin click (user activation)
-  | { kind: "confirmDialog"; dialog: "open-link" | "download" | "sampling" }
+  | { kind: "confirmDialog"; dialog: "download" | "sampling" } // host-native permission dialog
+  | { kind: "checkLinkOpen"; url: string }                     // ui/open-link actually opened THIS url
   | { kind: "conversationContains"; marker: string; timeoutMs: number }
   | { kind: "toggleTheme"; to: "light" | "dark" }
   | { kind: "readModelToolList" }        // optional desktop-host affordance
+  | { kind: "inspectFrame" }             // read the host page's &lt;iframe&gt; sandbox/allow/csp attrs
+  | { kind: "readConsole"; pattern: string; timeoutMs: number }
   | { kind: "resetIsolation" };          // suite emits this before each manual test
 
 export interface CapabilityResult {
   ok: boolean; value?: unknown; error?: string;
   unsupported?: boolean;                 // host lacks the capability → test skips / falls back
-}`;
+}
+
+// Reported by the host at ui/initialize and recorded next to the results, so a
+// run is attributable to a build — not just to a product name.
+export interface HostImplementation { name?: string; version?: string; title?: string }`;
 
 const FALLBACK = `// visibility/app-tool-hidden — capability-or-fallback
 const direct = await t.hostOptional({ kind: "readModelToolList" });
@@ -63,6 +116,39 @@ t.bindTrigger(() => t.app.sendMessage({ role: "user", content: [{ type: "text", 
 await t.host({ kind: "clickTrigger", commitDraftedMessage: true });
 const r = await t.host({ kind: "conversationContains", marker: "conformance_probe", timeoutMs: 45_000 });
 t.assert(!r.ok, "hidden tool name surfaced in the conversation");`;
+
+const SERVE = `npx mcp-apps-conformance          # serves the ui:// TestSuite on :3000/mcp
+npx mcp-apps-conformance --stdio  # or over stdio, for a desktop host's config`;
+
+const ADAPTER = `import { BrowserHost, Runner } from "mcp-apps-conformance";
+import type { Page } from "playwright";
+
+class MyHost extends BrowserHost {
+  readonly name = "my-host";
+  readonly url = "https://my-host.example/chat";
+  readonly widgetSelector = 'iframe[src*="my-sandbox-origin"]';
+
+  // Get the agent to render the conformance app.
+  protected async sendPrompt(page: Page, appName: string) {
+    await page.fill("#composer", \`run \${appName}\`);
+    await page.keyboard.press("Enter");
+  }
+  protected async dismissModal(_page: Page) {}   // cookie banner / login wall, if any
+
+  // Did this turn actually reach the conversation?
+  protected async verifyConversation(page: Page, marker: string, timeoutMs: number) {
+    return this.pollMarker(page, (m) => document.body.innerText.includes(m) ? "found" : "no",
+                           marker, timeoutMs, 3_000);
+  }
+}
+
+const { results } = await new Runner(new MyHost(), {
+  appName: "MCP Apps Conformance",
+  profileDir: ".profile/my-host",
+}).run();
+
+const failed = results.filter((r) => r.status === "FAIL");
+if (failed.length) process.exit(1);   // gate your CI on the spec`;
 
 const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -81,7 +167,8 @@ const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   .muted { color:var(--muted); font-size:13px; }
   code { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; background:#eef1f4; padding:1px 5px; border-radius:4px; }
   pre { background:var(--code); color:#e7ecf3; border-radius:10px; padding:16px 18px; overflow:auto; font-size:12px; line-height:1.5; }
-  pre.diagram { background:#f6f8fa; color:#2c333d; border:1px solid var(--line); font-size:11.5px; line-height:1.35; }
+  .diagram { margin:16px 0 4px; padding:8px 10px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+  .diagram svg { display:block; width:100%; height:auto; }
   .card { background:#f6f8fa; border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:10px 0; }
   .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .grid h3 { margin-top:0; }
@@ -94,8 +181,8 @@ const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 </style></head><body>
 <div><a class="nav" href="index.html">← Results</a><a class="nav" href="how-it-works.html">How it works</a></div>
 <h1>Architecture: Host / Runner / TestSuite</h1>
-<p class="lede">How the conformance harness is factored so any host — a web chat client today,
-a desktop app like VSCode or Goose tomorrow — can run the same suite. All the
+<p class="lede">How the conformance harness is factored so any host runs the same suite —
+five web chat clients and two Electron desktop apps (Cursor, Goose) today. All the
 platform-specific code lives behind one <code>Host</code> interface.</p>
 
 <h2>Three objects</h2>
@@ -108,9 +195,10 @@ platform-specific code lives behind one <code>Host</code> interface.</p>
   dispatcher — <strong>no per-test logic</strong>.</p></div>
   <div class="card"><h3>Host</h3><p>The only platform-specific piece. Opens the app,
   prompts the agent so the suite renders, exposes one method per capability.
-  <code>BrowserHost</code> (Playwright) today; desktop hosts drop in later.</p></div>
+  <code>BrowserHost</code> (Playwright) covers web chat clients <em>and</em> Electron
+  desktop apps, over CDP.</p></div>
 </div>
-<pre class="diagram">${DIAGRAM}</pre>
+<figure class="diagram">${DIAGRAM}</figure>
 
 <h2>The typed capability protocol</h2>
 <p>The protocol is deliberately <strong>primitive</strong> — one variant per thing a
@@ -146,26 +234,52 @@ yes/no/skip buttons, so the suite runs with no driver at all (a human answers).<
 </ul>
 <pre>${FALLBACK}</pre>
 
-<h2>Pluggable hosts</h2>
-<p>The three chat products differ in behavior — how you enter a prompt, dismiss a
-modal, verify a conversation turn, commit a drafted message — and in which
-capabilities they support. So they are subclasses of a shared
-<code>BrowserHost</code>, not config rows:</p>
+<h2>Pluggable hosts — seven, including two desktop apps</h2>
+<p>Products differ in behavior — how you enter a prompt, dismiss a modal, verify a
+conversation turn, commit a drafted message — and in which capabilities they support.
+So they are subclasses of a shared <code>BrowserHost</code>, not config rows:</p>
 <table>
   <thead><tr><th>Host</th><th>Prompt entry</th><th>Verify a turn</th><th>Notes</th></tr></thead>
   <tbody>
     <tr><td>ChatGPTBrowserHost</td><td><code>#prompt-textarea</code>, mention picker</td><td>backend conversation API</td><td>sends ui/message directly</td></tr>
     <tr><td>ClaudeBrowserHost</td><td>ProseMirror <code>contenteditable</code></td><td>scan transcript text</td><td>drafts ui/message → Send</td></tr>
+    <tr><td>MistralBrowserHost</td><td>ProseMirror <code>contenteditable</code></td><td>scan transcript text</td><td>consent reads “Confirm”; stops generation between tests</td></tr>
+    <tr><td>ManufactBrowserHost</td><td><code>textarea[data-testid=chat-input]</code></td><td>scan transcript text</td><td>third-party inspector; no login</td></tr>
     <tr><td>AlpicPlaygroundBrowserHost</td><td><code>textarea[name=message]</code></td><td>scan transcript text</td><td>no login</td></tr>
+    <tr><td>GooseBrowserHost <span class="tag">desktop</span></td><td><code>textarea[data-testid=chat-input]</code></td><td>scan renderer DOM</td><td>Electron; attaches over CDP</td></tr>
+    <tr><td>CursorBrowserHost <span class="tag">desktop</span></td><td><code>[contenteditable]</code>, fresh “New Agent”</td><td>scan webview frames</td><td>Electron; app renders in a nested <code>vscode-webview://</code></td></tr>
   </tbody>
 </table>
-<p class="muted"><code>VSCodeHost</code> / <code>GooseHost</code> would be peer
-<code>Host</code> implementations — not <code>BrowserHost</code> subclasses — providing
-their own <code>setup()</code>/<code>SuiteBridge</code> transport and whichever
-capabilities they can (a desktop host may implement <code>readModelToolList</code>
-that browser hosts can't). Anything a host can't do is simply <span class="tag">unsupported</span>,
-and those tests skip. Where the browser driver clicks real product UI, it necessarily
-overfits per-host DOM — see <a href="how-it-works.html">How it works</a>.</p>
+<p class="muted">The desktop hosts are the load-bearing evidence that the seam
+generalizes. <code>GooseHost</code>/<code>CursorHost</code> were expected to be peer
+<code>Host</code> implementations with their own transport — in practice both are plain
+<code>BrowserHost</code> subclasses that override one method, <code>open()</code>, to
+attach to a running Electron app over CDP instead of launching Chrome. Everything above
+that — the bridge, the real cross-origin clicks, frame inspection — is reused verbatim,
+even though the app renders inside a nested webview. Anything a host can't do is simply
+<span class="tag">unsupported</span> and those tests skip: a desktop host may implement
+<code>readModelToolList</code> that browser hosts can't, and conversely neither desktop
+host can observe <code>ui/open-link</code> (it opens in the OS browser, outside the
+driver), so that test honestly reports “can't verify” rather than a false failure.
+Where the driver clicks real product UI it necessarily overfits per-host DOM — see
+<a href="how-it-works.html">How it works</a>.</p>
+
+<h2>Run it against your own host</h2>
+<p>Two pieces ship on npm, matching the two halves of the diagram. Nothing about the
+suite is specific to a vendor — the only code you write is the adapter.</p>
+<h3>1 · The server, with the suite inside it</h3>
+<p class="muted">One command. Connect the printed URL as an MCP server in your host, then
+ask the agent to run <code>run_conformance</code>.</p>
+<pre>${SERVE}</pre>
+<h3>2 · The runner, with your host</h3>
+<p class="muted">Subclass <code>BrowserHost</code>, fill in the three hooks that describe
+your product's UI, and the generic <code>Runner</code> does the rest — returning
+structured <code>SubtestResult[]</code> you can assert on in CI.</p>
+<pre>${ADAPTER}</pre>
+<p class="muted">Every capability method is optional, so an adapter is useful long before
+it is complete: implement <code>setup</code>/<code>teardown</code> and the tests that
+need nothing else already run. Playwright is an optional peer dependency — needed only
+for this half, not to serve the suite.</p>
 </body></html>`;
 
 mkdirSync(DOCS, { recursive: true });
