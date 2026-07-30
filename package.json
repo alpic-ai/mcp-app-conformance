@@ -1,6 +1,6 @@
 {
   "name": "mcp-apps-conformance",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "type": "module",
   "description": "WPT-style conformance & interop test platform for the MCP Apps spec (SEP-1865). A reference test MCP server ships ui:// test pages that run inside any host and report PASS/FAIL.",
   "license": "MIT",

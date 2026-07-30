@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Clause } from "../../shared/protocol.js";
@@ -9,139 +9,141 @@ const ROOT = join(HERE, "..", "..");
 const CATALOGUE = join(ROOT, "catalogue.json");
 
 const SPEC_URL: Record<string, string> = {
-  "2026-01-26":
-    "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx?plain=1",
-  draft:
-    "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx?plain=1",
+	"2026-01-26":
+		"https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx?plain=1",
+	draft:
+		"https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx?plain=1",
 };
 
 const BUCKETS: [string, string, string][] = [
-  [
-    "automatic",
-    "Automatic",
-    "Asserted directly from inside the iframe — read a host value, proxy a tool call, trigger a CSP violation. No human, runs headless.",
-  ],
-  [
-    "auto-detect",
-    "Auto-detect (await)",
-    "The app triggers an action, then a host notification or callback settles the test automatically — no verdict to give.",
-  ],
-  [
-    "operator-verify",
-    "Operator / driver verdict",
-    "The effect happens outside the iframe (a permission dialog, a new tab, a conversation turn); a human or the Playwright driver confirms it from the host surface.",
-  ],
+	[
+		"automatic",
+		"Automatic",
+		"Asserted directly from inside the iframe — read a host value, proxy a tool call, trigger a CSP violation. No human, runs headless.",
+	],
+	[
+		"auto-detect",
+		"Auto-detect (await)",
+		"The app triggers an action, then a host notification or callback settles the test automatically — no verdict to give.",
+	],
+	[
+		"operator-verify",
+		"Operator / driver verdict",
+		"The effect happens outside the iframe (a permission dialog, a new tab, a conversation turn); a human or the Playwright driver confirms it from the host surface.",
+	],
 ];
 
 const OVERFIT_COLS = ["chatgpt", "claude", "alpic-playground"];
 const OVERFIT_ROWS: string[][] = [
-  [
-    "Launch prompt",
-    "#prompt-textarea, “run @app” (mention picker, 2× Enter)",
-    "ProseMirror div[contenteditable], “run app”, 1 Enter",
-    'textarea[name="message"], Enter',
-  ],
-  [
-    "Widget iframe",
-    'iframe[src*="oaiusercontent"]',
-    'iframe[src*="claudemcpcontent"]',
-    "iframe (same-origin)",
-  ],
-  ["Dismiss host chrome", "“Got it” modal", "“Accept All Cookies” banner", "—"],
-  [
-    "Permission dialog",
-    "“Open link” (as <a>), “Download”",
-    "“Open link” / “Download” (as <button>), “Allow”",
-    "—",
-  ],
-  [
-    "Send a ui/message",
-    "sent directly",
-    'drafts into composer → “Replace current text?” + button[aria-label="Send message"]',
-    "—",
-  ],
-  [
-    "Verify a conversation turn",
-    "/backend-api/conversation/<id> API",
-    "scrape document.body.innerText",
-    "scrape innerText",
-  ],
-  [
-    "Reset display mode",
-    "real-click “Reset to inline” (gesture-gated)",
-    "programmatic requestDisplayMode works",
-    "—",
-  ],
+	[
+		"Launch prompt",
+		"#prompt-textarea, “run @app” (mention picker, 2× Enter)",
+		"ProseMirror div[contenteditable], “run app”, 1 Enter",
+		'textarea[name="message"], Enter',
+	],
+	[
+		"Widget iframe",
+		'iframe[src*="oaiusercontent"]',
+		'iframe[src*="claudemcpcontent"]',
+		"iframe (same-origin)",
+	],
+	["Dismiss host chrome", "“Got it” modal", "“Accept All Cookies” banner", "—"],
+	[
+		"Permission dialog",
+		"“Open link” (as <a>), “Download”",
+		"“Open link” / “Download” (as <button>), “Allow”",
+		"—",
+	],
+	[
+		"Send a ui/message",
+		"sent directly",
+		'drafts into composer → “Replace current text?” + button[aria-label="Send message"]',
+		"—",
+	],
+	[
+		"Verify a conversation turn",
+		"/backend-api/conversation/<id> API",
+		"scrape document.body.innerText",
+		"scrape innerText",
+	],
+	[
+		"Reset display mode",
+		"real-click “Reset to inline” (gesture-gated)",
+		"programmatic requestDisplayMode works",
+		"—",
+	],
 ];
 
 interface CatalogueEntry {
-  id: string;
-  clause: Clause;
-  vantage?: string;
-  spec: string;
-  line: number;
-  implemented?: boolean;
-  bucket?: string;
-  askAgent?: boolean;
+	id: string;
+	clause: Clause;
+	vantage?: string;
+	spec: string;
+	line: number;
+	implemented?: boolean;
+	bucket?: string;
+	askAgent?: boolean;
 }
 
 function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#x27;");
 }
 
 function localStamp(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+	const d = new Date();
+	const p = (n: number) => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 function specLink(e: CatalogueEntry): string {
-  const base = SPEC_URL[e.spec];
-  const label = `${e.spec} · L${e.line}`;
-  return base
-    ? `<a href="${base}#L${e.line}" target="_blank" rel="noopener">${esc(label)}</a>`
-    : esc(label);
+	const base = SPEC_URL[e.spec];
+	const label = `${e.spec} · L${e.line}`;
+	return base
+		? `<a href="${base}#L${e.line}" target="_blank" rel="noopener">${esc(label)}</a>`
+		: esc(label);
 }
 
 function main(): number {
-  const catalogue = JSON.parse(readFileSync(CATALOGUE, "utf8")) as CatalogueEntry[];
-  const impl = catalogue.filter((e) => e.implemented);
+	const catalogue = JSON.parse(
+		readFileSync(CATALOGUE, "utf8"),
+	) as CatalogueEntry[];
+	const impl = catalogue.filter((e) => e.implemented);
 
-  let bucketSections = "";
-  for (const [key, title, desc] of BUCKETS) {
-    const rows = impl.filter((e) => e.bucket === key);
-    let items = "";
-    for (const e of rows) {
-      const badge = e.askAgent ? ' <span class="tag">ask-agent</span>' : "";
-      items +=
-        `<tr><td class="mono">${esc(e.id)}${badge}</td>` +
-        `<td class="mono">${esc(e.clause)}</td>` +
-        `<td>${specLink(e)}</td></tr>`;
-    }
-    bucketSections +=
-      `<h3>${esc(title)} <span class="count">${rows.length}</span></h3>` +
-      `<p class="desc">${esc(desc)}</p>` +
-      `<table class="tests"><tbody>${items}</tbody></table>`;
-  }
+	let bucketSections = "";
+	for (const [key, title, desc] of BUCKETS) {
+		const rows = impl.filter((e) => e.bucket === key);
+		let items = "";
+		for (const e of rows) {
+			const badge = e.askAgent ? ' <span class="tag">ask-agent</span>' : "";
+			items +=
+				`<tr><td class="mono">${esc(e.id)}${badge}</td>` +
+				`<td class="mono">${esc(e.clause)}</td>` +
+				`<td>${specLink(e)}</td></tr>`;
+		}
+		bucketSections +=
+			`<h3>${esc(title)} <span class="count">${rows.length}</span></h3>` +
+			`<p class="desc">${esc(desc)}</p>` +
+			`<table class="tests"><tbody>${items}</tbody></table>`;
+	}
 
-  const overfitHead = OVERFIT_COLS.map((c) => `<th>${esc(c)}</th>`).join("");
-  const overfitBody = OVERFIT_ROWS.map(
-    (r) =>
-      `<tr><td class="concern">${esc(r[0])}</td>` +
-      r
-        .slice(1)
-        .map((cell) => `<td class="mono">${esc(cell)}</td>`)
-        .join("") +
-      "</tr>",
-  ).join("");
+	const overfitHead = OVERFIT_COLS.map((c) => `<th>${esc(c)}</th>`).join("");
+	const overfitBody = OVERFIT_ROWS.map(
+		(r) =>
+			`<tr><td class="concern">${esc(r[0])}</td>` +
+			r
+				.slice(1)
+				.map((cell) => `<td class="mono">${esc(cell)}</td>`)
+				.join("") +
+			"</tr>",
+	).join("");
 
-  const generated = localStamp();
-  const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+	const generated = localStamp();
+	const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>MCP Apps Conformance — how it works</title>
 <style>
   :root { --line:#e6e8ec; --muted:#5b6573; --accent:#1a73e8; --ink:#171a1f; --bg:#fff; }
@@ -191,11 +193,11 @@ ${bucketSections}
 <table><thead><tr><th>Concern</th>${overfitHead}</tr></thead><tbody>${overfitBody}</tbody></table>
 </body></html>`;
 
-  const out = join(ROOT, "docs", "how-it-works.html");
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, doc);
-  console.log(`Wrote ${out}`);
-  return 0;
+	const out = join(ROOT, "docs", "how-it-works.html");
+	mkdirSync(dirname(out), { recursive: true });
+	writeFileSync(out, doc);
+	console.log(`Wrote ${out}`);
+	return 0;
 }
 
 main();

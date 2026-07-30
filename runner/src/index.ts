@@ -11,6 +11,8 @@
  *
  * `./hosts/util` stays internal — its timeouts are implementation details.
  */
+
+export * from "../../shared/protocol.js";
 export type { Host, SetupOptions, SuiteBridge } from "./host.js";
 export { BrowserHost } from "./hosts/browser.js";
 export { HOSTS } from "./hosts/index.js";
@@ -21,4 +23,3 @@ export {
 	writeResults,
 } from "./results.js";
 export { Runner } from "./runner.js";
-export * from "../../shared/protocol.js";

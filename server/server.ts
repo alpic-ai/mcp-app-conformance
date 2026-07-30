@@ -8,15 +8,16 @@
  *
  * POC scope: the runner only — results are shown in the iframe, not persisted.
  */
+
+import { existsSync, readFileSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import {
-  registerAppResource,
-  registerAppTool,
-  RESOURCE_MIME_TYPE,
+	RESOURCE_MIME_TYPE,
+	registerAppResource,
+	registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { readFileSync, existsSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
 import { z } from "zod";
 
 const RUNNER_URI = "ui://conformance/runner";
@@ -31,10 +32,10 @@ const RUNNER_URI = "ui://conformance/runner";
 // instead of showing the honest "not built" notice below.
 const HERE = import.meta.dirname;
 const VIEW_CANDIDATES = [
-  resolve(HERE, "../dist/view/index.html"),
-  ...(basename(dirname(HERE)) === "dist"
-    ? [resolve(HERE, "../view/index.html")]
-    : []),
+	resolve(HERE, "../dist/view/index.html"),
+	...(basename(dirname(HERE)) === "dist"
+		? [resolve(HERE, "../view/index.html")]
+		: []),
 ];
 
 // The runner declares a CSP so the suite can test both directions: this origin
@@ -42,76 +43,83 @@ const VIEW_CANDIDATES = [
 const CSP_ALLOWED_ORIGIN = "https://modelcontextprotocol.io";
 
 function loadRunnerHtml(): string {
-  // Resolved per read, not at import, so `vite build --watch` is picked up live.
-  const found = VIEW_CANDIDATES.find(existsSync);
-  if (found) return readFileSync(found, "utf-8");
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px">
+	// Resolved per read, not at import, so `vite build --watch` is picked up live.
+	const found = VIEW_CANDIDATES.find(existsSync);
+	if (found) return readFileSync(found, "utf-8");
+	return `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:24px">
     <h2>Runner not built</h2><p>Run <code>npm run build:view</code> first.</p></body></html>`;
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({
-    name: "mcp-apps-conformance-server",
-    version: "0.1.0",
-  });
+	const server = new McpServer({
+		name: "mcp-apps-conformance-server",
+		version: "0.1.0",
+	});
 
-  const cspMeta = { ui: { csp: { connectDomains: [CSP_ALLOWED_ORIGIN] } } };
-  registerAppResource(
-    server,
-    "Conformance Runner",
-    RUNNER_URI,
-    { description: "Runs the MCP Apps conformance suite inside the host.", _meta: cspMeta },
-    () => ({
-      contents: [
-        {
-          uri: RUNNER_URI,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: loadRunnerHtml(),
-          _meta: cspMeta,
-        },
-      ],
-    }),
-  );
+	const cspMeta = { ui: { csp: { connectDomains: [CSP_ALLOWED_ORIGIN] } } };
+	registerAppResource(
+		server,
+		"Conformance Runner",
+		RUNNER_URI,
+		{
+			description: "Runs the MCP Apps conformance suite inside the host.",
+			_meta: cspMeta,
+		},
+		() => ({
+			contents: [
+				{
+					uri: RUNNER_URI,
+					mimeType: RESOURCE_MIME_TYPE,
+					text: loadRunnerHtml(),
+					_meta: cspMeta,
+				},
+			],
+		}),
+	);
 
-  registerAppTool(
-    server,
-    "run_conformance",
-    {
-      description: "Run the MCP Apps conformance test suite against this host.",
-      _meta: { ui: { resourceUri: RUNNER_URI, visibility: ["model", "app"] } },
-    },
-    (): CallToolResult => ({
-      content: [{ type: "text", text: "Launching the MCP Apps conformance runner…" }],
-    }),
-  );
+	registerAppTool(
+		server,
+		"run_conformance",
+		{
+			description: "Run the MCP Apps conformance test suite against this host.",
+			_meta: { ui: { resourceUri: RUNNER_URI, visibility: ["model", "app"] } },
+		},
+		(): CallToolResult => ({
+			content: [
+				{ type: "text", text: "Launching the MCP Apps conformance runner…" },
+			],
+		}),
+	);
 
-  registerAppTool(
-    server,
-    "conformance_probe",
-    {
-      description: "Echo probe used by the conformance harness to verify tool proxying.",
-      inputSchema: { ping: z.string() },
-      _meta: { ui: { visibility: ["app"] } },
-    },
-    ({ ping }): CallToolResult => ({
-      content: [{ type: "text", text: `echo:${ping}` }],
-    }),
-  );
+	registerAppTool(
+		server,
+		"conformance_probe",
+		{
+			description:
+				"Echo probe used by the conformance harness to verify tool proxying.",
+			inputSchema: { ping: z.string() },
+			_meta: { ui: { visibility: ["app"] } },
+		},
+		({ ping }): CallToolResult => ({
+			content: [{ type: "text", text: `echo:${ping}` }],
+		}),
+	);
 
-  // Model-only fixture tool (NOT app-visible). The visibility test calls this
-  // from the view; a conformant host MUST reject that call.
-  registerAppTool(
-    server,
-    "model_only_probe",
-    {
-      description: "Model-only fixture; an app calling this MUST be rejected by the host.",
-      inputSchema: { ping: z.string() },
-      _meta: { ui: { visibility: ["model"] } },
-    },
-    ({ ping }): CallToolResult => ({
-      content: [{ type: "text", text: `model-only:${ping}` }],
-    }),
-  );
+	// Model-only fixture tool (NOT app-visible). The visibility test calls this
+	// from the view; a conformant host MUST reject that call.
+	registerAppTool(
+		server,
+		"model_only_probe",
+		{
+			description:
+				"Model-only fixture; an app calling this MUST be rejected by the host.",
+			inputSchema: { ping: z.string() },
+			_meta: { ui: { visibility: ["model"] } },
+		},
+		({ ping }): CallToolResult => ({
+			content: [{ type: "text", text: `model-only:${ping}` }],
+		}),
+	);
 
-  return server;
+	return server;
 }
