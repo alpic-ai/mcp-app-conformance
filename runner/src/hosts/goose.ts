@@ -5,11 +5,11 @@ import type { SetupOptions } from "../host.js";
 import { BrowserHost } from "./browser.js";
 import { PAGE_LOAD_TIMEOUT_MS, sleep } from "./util.js";
 
-const APP = "/Applications/Goose 2.app";
+const APP = "/Applications/Goose.app";
 const PORT = 9222;
 const ENDPOINT = `http://127.0.0.1:${PORT}`;
 
-// Goose 2 is an Electron desktop app. `_electron.launch` can't attach (the 53KB
+// Goose is an Electron desktop app. `_electron.launch` can't attach (the 53KB
 // launcher stub re-execs the real process), but Goose honours
 // `--remote-debugging-port`, so we launch it with that flag and attach over CDP.
 // The conformance server must be added as a Goose extension so run_conformance
@@ -66,7 +66,7 @@ export class GooseBrowserHost extends BrowserHost {
 
 	private async quitGoose(): Promise<void> {
 		await new Promise<void>((resolve) => {
-			const p = spawn("pkill", ["-f", "Goose 2.app"], { stdio: "ignore" });
+			const p = spawn("pkill", ["-f", "Goose.app"], { stdio: "ignore" });
 			p.on("close", () => resolve());
 			p.on("error", () => resolve());
 		});
