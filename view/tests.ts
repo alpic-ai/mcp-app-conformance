@@ -951,14 +951,28 @@ mcp_test(
 	"security/iframe-sandboxed",
 	"host renders the View in a sandboxed iframe",
 	async (t: TestContext) => {
-		const r = await t.host({ kind: "inspectFrame" });
+		const r = await t.hostOptional({ kind: "inspectFrame" });
 		t.setValue(r.value);
+		if (r.unsupported) {
+			t.skip(r.error ?? "the View's frame chain could not be resolved");
+		}
 		const info = r.value as
-			| { total: number; sandboxed: number; firstSandbox: string | null }
+			| {
+					total: number;
+					sandboxed: number;
+					firstSandbox: string | null;
+					viewChainDepth: number;
+					viewSandboxed: boolean;
+					viewSandbox: string | null;
+					viewSandboxDepth: number | null;
+			  }
 			| undefined;
 		t.assert(
-			!!info && info.sandboxed >= 1,
-			"no sandboxed <iframe> found in the host document",
+			!!info?.viewSandboxed,
+			"no sandbox attribute on any frame between the View and the host document" +
+				(info && info.sandboxed >= 1
+					? ` (the top document has ${info.sandboxed} sandboxed iframe(s), but none of them confines the View)`
+					: ""),
 		);
 	},
 	{
@@ -967,7 +981,7 @@ mcp_test(
 		manual: true,
 		timeoutMs: 0,
 		caveat:
-			"Operator-read: the sandboxed View's content is cross-origin, but the <iframe> element (and its sandbox attribute) lives in the host document and is readable. Asserts the host uses at least one sandboxed iframe.",
+			"Operator-read: the <iframe> elements confining the View live in the host document and their attributes are readable. Asserts that one of them is sandboxed (in practice the Sandbox proxy), not merely that some iframe on the page is. Attribute-only: a host sandboxing via a Content-Security-Policy: sandbox header FAILS here. A chain that cannot be resolved at all SKIPs instead, with the reason attached.",
 	},
 );
 

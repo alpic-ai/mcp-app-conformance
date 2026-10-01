@@ -1,4 +1,4 @@
-import type { BrowserContext, Frame, Page } from "playwright";
+import type { BrowserContext, ElementHandle, Frame, Page } from "playwright";
 import { chromium } from "playwright";
 import type { CapabilityResult } from "../../../shared/protocol.js";
 import { CHANNEL } from "../../../shared/protocol.js";
@@ -103,9 +103,17 @@ export abstract class BrowserHost implements Host {
 	// Read the host page's <iframe> elements — their attributes are readable even
 	// though the frames' content is cross-origin. `document` has no type here (the
 	// runner tsconfig omits the DOM lib), hence the cast.
+	//
+	// The page-wide counts alone cannot answer the MUST ("All View content MUST be
+	// rendered in sandboxed iframes", spec 2026-01-26 L1698): a host that renders
+	// the View unsandboxed, while some unrelated iframe on the page carries a
+	// sandbox attribute, satisfies them. So we also walk the frame chain that
+	// confines the View and report whether any element in it is sandboxed.
 	async inspectFrame(): Promise<CapabilityResult> {
-		const value = await this.page.evaluate(() => {
+		const counts = await this.page.evaluate(() => {
 			const d = (globalThis as any).document;
+			// Top document only: querySelectorAll does not descend into child
+			// documents, which is why these counts miss a nested sandbox proxy.
 			const frames = Array.from(d.querySelectorAll("iframe")) as any[];
 			const sandboxed = frames.filter((f) => f.hasAttribute("sandbox"));
 			return {
@@ -114,7 +122,93 @@ export abstract class BrowserHost implements Host {
 				firstSandbox: sandboxed[0]?.getAttribute("sandbox") ?? null,
 			};
 		});
-		return { ok: true, value };
+		const chain = await this.viewSandboxChain();
+		// Chain unresolvable (desktop webviews, a detached frame mid-run): report
+		// the capability as unsupported so the suite SKIPs. Asserting a MUST we
+		// could not observe would accuse a host that may well be conforming, and a
+		// conformance suite must never emit that. The reason travels with it.
+		if ("unresolved" in chain)
+			return {
+				ok: false,
+				unsupported: true,
+				error: `could not resolve the frame chain confining the View: ${chain.unresolved}`,
+				value: counts,
+			};
+		return { ok: true, value: { ...counts, ...chain } };
+	}
+
+	// The sandbox state of the frame chain confining the View, read from the host
+	// document. Two things this deliberately does NOT do:
+	//
+	// - It reads only elements that live in a document the host page can reach.
+	//   The chain starts at the View's own frame element and walks outward to the
+	//   top document. If a proxy renders the View HTML in a further iframe inside
+	//   its own cross-origin document (spec Sandbox proxy, L470-484), that element
+	//   is not observable from the host and is not read.
+	// - It does not stop at the outermost frame. Sandbox flags are inherited
+	//   downward, so a host that puts a layout frame between the top document and
+	//   the sandbox proxy is still conforming; checking only the outermost element
+	//   would fail it. Any sandboxed ancestor confines the View.
+	//
+	// Attribute-only, and read as declared: a host sandboxing through a
+	// `Content-Security-Policy: sandbox` response header leaves no attribute to
+	// read, and an attribute added after the frame was created does not confine it
+	// (sandboxing flags are set when the browsing context is created).
+	// When the chain cannot be resolved it returns why, so the skip carries a
+	// reason instead of hiding a genuine defect behind a silent one.
+	private async viewSandboxChain(): Promise<
+		| {
+				viewChainDepth: number;
+				viewSandboxed: boolean;
+				viewSandbox: string | null;
+				viewSandboxDepth: number | null;
+		  }
+		| { unresolved: string }
+	> {
+		const handles: ElementHandle[] = [];
+		try {
+			const top = this.page.mainFrame();
+			// From the View outward: depth 1 is its own element, the last entry is
+			// the child of the top document.
+			const chain: Frame[] = [];
+			for (let f = await this.appFrame(); f !== top; ) {
+				chain.push(f);
+				const parent = f.parentFrame();
+				if (parent === null)
+					return {
+						unresolved:
+							"the View's frame subtree is not rooted at the host's top frame",
+					};
+				f = parent;
+			}
+			for (const [i, frame] of chain.entries()) {
+				const element = await frame.frameElement();
+				handles.push(element);
+				const sandbox = await element.getAttribute("sandbox");
+				if (sandbox !== null)
+					return {
+						viewChainDepth: chain.length,
+						viewSandboxed: true,
+						viewSandbox: sandbox,
+						viewSandboxDepth: i + 1,
+					};
+			}
+			return {
+				viewChainDepth: chain.length,
+				viewSandboxed: false,
+				viewSandbox: null,
+				viewSandboxDepth: null,
+			};
+		} catch (err) {
+			return { unresolved: String(err) };
+		} finally {
+			// Best-effort: a dispose failure must not mask the result above.
+			for (const h of handles) {
+				try {
+					await h.dispose();
+				} catch {}
+			}
+		}
 	}
 
 	// Scan the buffered host console (captured since launch) for `pattern`.
