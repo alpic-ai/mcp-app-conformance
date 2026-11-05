@@ -920,27 +920,25 @@ mcp_test(
 
 // ── operator / interaction-flow additions ───────────────────────────────────
 
-// security — the host MUST wrap the View in an intermediate Sandbox proxy, so the
-// View is not a direct child of the host top. Comparing window references across
-// origins is allowed (no property read), so this is an automatic in-view check.
+// security — the View MUST be embedded in a frame (If the Host is a web page,
+// it MUST wrap the View in an iframe — §Rendering the MCP App). The relaxed
+// draft no longer mandates the intermediate Sandbox proxy architecture, so this
+// asserts only that a frame boundary exists, not its depth. Comparing window
+// references across origins is allowed (no property read).
 mcp_test(
 	"security/sandbox-proxy-required",
-	"the View is wrapped in an intermediate sandbox proxy",
+	"the View is embedded in an iframe",
 	(t: TestContext) => {
 		t.assert(
 			window.top !== window.self,
 			"not embedded in a host frame (window.top === self)",
-		);
-		t.assert(
-			window.parent !== window.top,
-			"the View is a direct child of the host top — no intermediate sandbox proxy frame between the View and the host",
 		);
 	},
 	{
 		clause: "MUST",
 		vantage: "in-view",
 		caveat:
-			"Paired with sandbox-distinct-origin (Host != Sandbox): window.parent (the sandbox) != window.top (the host) proves an intermediate proxy frame. Opened top-level, window.top === self and this FAILs — correct, it's not in a host.",
+			"Architecture-agnostic since the relaxed draft spec (ext-apps #717): asserts only that the View is embedded in a frame — single-iframe and double-iframe hosts both pass. Frame depth and origin separation are covered by sandbox-distinct-origin; allow-scripts + allow-same-origin by sandbox-permissions. Opened top-level, window.top === self and this FAILs — correct, it's not in a host.",
 	},
 );
 
