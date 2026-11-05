@@ -2,6 +2,8 @@
 
 Conformance-test any **MCP Apps** host against the spec ([SEP-1865 · `2026-01-26`](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx)), modeled on [web-platform-tests](https://web-platform-tests.org).
 
+> **Spec pin.** Tests are pinned per row to a spec version in `catalogue.json` (`spec`). Almost all rows target stable `2026-01-26`; `security/sandbox-proxy-required` targets the `draft` spec (`specification/draft/apps.mdx`, §Rendering the MCP App), where the architecture requirement was relaxed — it asserts only that the View is embedded in an iframe (single- or double-iframe hosts both pass), not that an intermediate sandbox proxy frame exists. Under stable `2026-01-26` hosts were required to use the double-iframe architecture; treat that row's result accordingly if you pin the stable spec.
+
 > The host is the browser. The `ui://` page is the WPT test. The bridge is the harness.
 
 A single `ui://` page — the **TestSuite** — renders inside your host's sandboxed iframe, drives the `postMessage`/JSON-RPC bridge, and asserts your behaviour against the spec. Run it by hand, or drive it from CI.
